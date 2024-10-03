@@ -1,82 +1,46 @@
-Private Sub Button1_Click()
-    ' Toggle between hide and unhide based on the current state
-    If IsHidden Then
-        Call UnhideColumns
-    Else
-        Call HideZeroSumColumns
-    End If
-End Sub
+Dim isHidden As Boolean ' Track whether columns are currently hidden
 
-Private Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
-    Application.EnableEvents = False
-    
-    If Target.Name = "PivotTable2" Then
-        ' Reapply the hiding or unhiding logic based on the current button state
-        If IsHidden Then
-            Call HideZeroSumColumns
-        Else
-            Call UnhideColumns
-        End If
-    End If
-    
-    Application.EnableEvents = True
-End Sub
-
-
-Public Sub HideZeroSumColumns()
+Sub ToggleZeroSumColumns()
     Dim pt As PivotTable
     Dim pf As PivotField
-    Dim pvtItem As PivotItem
-    Dim col As Integer
     Dim ws As Worksheet
-    Dim sumValue As Long
-    Dim cellValue As Variant
+    Dim lastCol As Long
+    Dim i As Long
+    Dim colSum As Double
     Dim btn As Button
     
     Set ws = ThisWorkbook.Sheets("BU_pivot")
-    Set pt = ws.PivotTables("PivotTable2")
-    Set btn = ws.Buttons("Button 1")
+    Set pt = ws.PivotTables("PivotTable2") ' Use the name of your pivot table
+    Set btn = ws.Buttons("Button1")
     
-    ' Unhide all columns before starting the process
-    ws.Columns.Hidden = False
+    ' Get the last column in the PivotTable's data range
+    lastCol = pt.DataBodyRange.Columns.Count
     
-    For Each pf In pt.ColumnFields
-        For Each pvtItem In pf.PivotItems
-            col = pvtItem.Position + pf.DataRange.Column - 1
-            sumValue = 0
-            
-            ' Sum values in the pivot table column
-            For Each cellValue In ws.Cells(pt.DataBodyRange.Row, col).Resize(pt.DataBodyRange.Rows.Count, 1).Value
-                sumValue = sumValue + CLng(cellValue)
-            Next cellValue
-            
-            ' Hide column if sum is 0
-            If sumValue = 0 Then
-                ws.Columns(col).EntireColumn.Hidden = True
+    ' Toggle between hiding and unhiding
+    If isHidden Then
+        ' Unhide all columns
+        For i = 1 To lastCol
+            ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = False
+        Next i
+        btn.Caption = "Click to hide"
+        isHidden = False
+    Else
+        ' Hide columns where the sum is zero
+        For i = 1 To lastCol
+            colSum = Application.WorksheetFunction.Sum(pt.DataBodyRange.Columns(i))
+            If colSum = 0 Then
+                ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = True
             End If
-        Next pvtItem
-    Next pf
-    
-    ' Set hidden state and button caption
-    IsHidden = True
-    btn.Caption = "Unhide 0 sum Columns"
+        Next i
+        btn.Caption = "Click to unhide"
+        isHidden = True
+    End If
 End Sub
 
-Public Sub UnhideColumns()
-    Dim ws As Worksheet
-    Dim btn As Button
-    
-    Set ws = ThisWorkbook.Sheets("BU_pivot")
-    Set btn = ws.Buttons("Button 1")
-    
-    ' Unhide all columns
-    ws.Columns.Hidden = False
-    
-    ' Set unhidden state and button caption
-    IsHidden = False
-    btn.Caption = "Hide 0 Sum Columns"
+Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
+    ' Keep the button state when the filter is changed
+    If isHidden Then
+        ' Re-hide zero-sum columns after filter changes
+        ToggleZeroSumColumns
+    End If
 End Sub
-
-
-
-
