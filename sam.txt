@@ -1,0 +1,71 @@
+Private Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
+    Application.EnableEvents = False
+    
+    If Target.Name = "PivotTable2" Then
+        ' Reapply the logic without toggling the button state
+        If IsHidden Then
+            Call HideZeroSumColumns ' Keep hiding 0 sum columns
+        Else
+            ' If unhidden state, ensure 0 sum columns remain visible
+            Call UnhideColumns
+        End If
+    End If
+    
+    Application.EnableEvents = True
+End Sub
+
+' Subroutine to hide 0 sum columns (as before)
+Public Sub HideZeroSumColumns()
+    Dim pt As PivotTable
+    Dim pf As PivotField
+    Dim pvtItem As PivotItem
+    Dim col As Integer
+    Dim ws As Worksheet
+    Dim sumValue As Long
+    Dim cellValue As Variant
+    Dim btn As Button
+    
+    Set ws = ThisWorkbook.Sheets("BU_pivot")
+    Set pt = ws.PivotTables("PivotTable2")
+    Set btn = ws.Buttons("Button 1")
+    
+    ' Unhide all columns before starting the process
+    ws.Columns.Hidden = False
+    
+    For Each pf In pt.ColumnFields
+        For Each pvtItem In pf.PivotItems
+            col = pvtItem.Position + pf.DataRange.Column - 1
+            sumValue = 0
+            
+            ' Sum values in the pivot table column
+            For Each cellValue In ws.Cells(pt.DataBodyRange.Row, col).Resize(pt.DataBodyRange.Rows.Count, 1).Value
+                sumValue = sumValue + CLng(cellValue)
+            Next cellValue
+            
+            ' Hide column if sum is 0
+            If sumValue = 0 Then
+                ws.Columns(col).EntireColumn.Hidden = True
+            End If
+        Next pvtItem
+    Next pf
+    
+    ' Update button caption but only when user clicks, not on filter changes
+    IsHidden = True
+    btn.Caption = "Unhide 0 sum Columns"
+End Sub
+
+' Subroutine to unhide all columns
+Public Sub UnhideColumns()
+    Dim ws As Worksheet
+    Dim btn As Button
+    
+    Set ws = ThisWorkbook.Sheets("BU_pivot")
+    Set btn = ws.Buttons("Button 1")
+    
+    ' Unhide all columns
+    ws.Columns.Hidden = False
+    
+    ' Update button caption
+    IsHidden = False
+    btn.Caption = "Hide 0 Sum Columns"
+End Sub
