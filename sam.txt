@@ -18,12 +18,14 @@ Sub ToggleZeroSumColumns()
     ' Get the last column in the PivotTable's data range
     lastCol = pt.DataBodyRange.Columns.Count
     
+    ' Always unhide all columns first before applying the new logic
+    For i = 1 To lastCol
+        ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = False
+    Next i
+    
     ' Toggle between hiding and unhiding
     If isHidden Then
-        ' Unhide all columns
-        For i = 1 To lastCol
-            ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = False
-        Next i
+        ' Unhide all columns (this is already done above)
         btn.Caption = "Click to hide"
         isHidden = False
     Else
@@ -50,9 +52,6 @@ Sub ToggleZeroSumColumns()
 End Sub
 
 Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
-    ' Keep the button state when the filter is changed
-    If isHidden Then
-        ' Re-hide zero-sum columns after filter changes
-        ToggleZeroSumColumns
-    End If
+    ' Always unhide all columns first when the pivot table is updated
+    Call ToggleZeroSumColumns
 End Sub
