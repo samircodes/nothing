@@ -2,7 +2,6 @@ Dim isHidden As Boolean ' Track whether columns are currently hidden
 
 Sub ToggleZeroSumColumns()
     Dim pt As PivotTable
-    Dim pf As PivotField
     Dim ws As Worksheet
     Dim lastCol As Long
     Dim i As Long
@@ -23,12 +22,8 @@ Sub ToggleZeroSumColumns()
         ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = False
     Next i
     
-    ' Toggle between hiding and unhiding
+    ' Check the current state of isHidden
     If isHidden Then
-        ' Unhide all columns (this is already done above)
-        btn.Caption = "Click to hide"
-        isHidden = False
-    Else
         ' Hide columns where the sum is zero
         For i = 1 To lastCol
             colSum = 0
@@ -46,12 +41,29 @@ Sub ToggleZeroSumColumns()
                 ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = True
             End If
         Next i
-        btn.Caption = "Click to unhide"
-        isHidden = True
     End If
 End Sub
 
-Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
-    ' Always unhide all columns first when the pivot table is updated
+Sub Button_Click()
+    Dim ws As Worksheet
+    Dim btn As Button
+    Set ws = ThisWorkbook.Sheets("BU_pivot")
+    Set btn = ws.Buttons("Button1")
+    
+    ' Toggle the state
+    If isHidden Then
+        isHidden = False
+        btn.Caption = "Click to hide"
+    Else
+        isHidden = True
+        btn.Caption = "Click to unhide"
+    End If
+    
+    ' Call the function to handle hiding/unhiding
+    Call ToggleZeroSumColumns
+End Sub
+
+Private Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
+    ' When the pivot table is updated (e.g., filter is changed), maintain the current hidden state
     Call ToggleZeroSumColumns
 End Sub
