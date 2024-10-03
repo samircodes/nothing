@@ -7,6 +7,8 @@ Sub ToggleZeroSumColumns()
     Dim lastCol As Long
     Dim i As Long
     Dim colSum As Double
+    Dim j As Long
+    Dim cellValue As Double
     Dim btn As Button
     
     Set ws = ThisWorkbook.Sheets("BU_pivot")
@@ -27,7 +29,17 @@ Sub ToggleZeroSumColumns()
     Else
         ' Hide columns where the sum is zero
         For i = 1 To lastCol
-            colSum = Application.WorksheetFunction.Sum(pt.DataBodyRange.Columns(i))
+            colSum = 0
+            ' Loop through each cell in the column to calculate the sum
+            For j = 1 To pt.DataBodyRange.Rows.Count
+                cellValue = 0 ' Default to 0 in case of non-numeric or empty cells
+                On Error Resume Next
+                cellValue = CLng(pt.DataBodyRange.Cells(j, i).Value) ' Convert to integer (CLng)
+                On Error GoTo 0
+                colSum = colSum + cellValue
+            Next j
+            
+            ' Hide the column if the sum is zero
             If colSum = 0 Then
                 ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = True
             End If
