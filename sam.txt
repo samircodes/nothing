@@ -15,7 +15,7 @@ Sub LoadSourceData()
     Set ThisWorkbook = ActiveWorkbook
     
     ' Open file dialog to select the source data file
-    SourceFile = Application.GetOpenFilename(FileFilter:="Excel & CSV Files (*.xls; *.xlsx; *.csv), *.xls; *.xlsx; *.csv", Title:="Select the Source Data File")
+    SourceFile = Application.GetOpenFilename(FileFilter:="Excel Files (*.xls; *.xlsx), *.xls; *.xlsx, CSV Files (*.csv), *.csv", Title:="Select the Source Data File")
     
     ' Exit if no file is selected
     If SourceFile = "False" Then Exit Sub
