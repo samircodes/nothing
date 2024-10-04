@@ -3,12 +3,11 @@ Sub LoadSourceData()
     Dim SourceFile As String
     Dim NewSourceData As Worksheet
     Dim SourceDataExists As Boolean
-    Dim SourceWorkbook As Workbook
     Dim ThisWorkbook As Workbook
     Dim PivotTable As PivotTable
     Dim wsPivot As Worksheet
     Dim FileExt As String
-    Dim CSVData As Workbook
+    Dim qt As QueryTable
     
     ' Set reference to the workbook with the pivot tables
     Set ThisWorkbook = ActiveWorkbook
@@ -50,18 +49,21 @@ Sub LoadSourceData()
         SourceWorkbook.Close False
     
     ElseIf FileExt = "csv" Then
-        ' Open the selected CSV file
-        Set CSVData = Workbooks.Open(SourceFile)
-        
         ' Add a new sheet for the CSV data
         Set NewSourceData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
         NewSourceData.Name = "SourceData"
         
-        ' Copy the data from the CSV and paste it directly into the new sheet
-        NewSourceData.Range("A1").Resize(CSVData.Sheets(1).UsedRange.Rows.Count, CSVData.Sheets(1).UsedRange.Columns.Count).Value = CSVData.Sheets(1).UsedRange.Value
+        ' Import the CSV data into the new sheet using QueryTables
+        Set qt = NewSourceData.QueryTables.Add(Connection:="TEXT;" & SourceFile, Destination:=NewSourceData.Range("A1"))
         
-        ' Close the CSV file without saving
-        CSVData.Close False
+        ' Set the properties of the query table
+        With qt
+            .TextFileParseType = xlDelimited
+            .TextFileCommaDelimiter = True
+            .TextFileColumnDataTypes = Array(1) ' Treat all columns as text
+            .Refresh BackgroundQuery:=False
+        End With
+        
     Else
         MsgBox "Unsupported file type. Please select an Excel or CSV file.", vbExclamation
         Exit Sub
