@@ -70,9 +70,9 @@ Sub LoadSourceData()
     ' Refresh all pivot tables in the workbook
     For Each wsPivot In ThisWorkbook.Worksheets
         For Each PivotTable In wsPivot.PivotTables
+            ' Update the pivot cache using correct syntax
             PivotTable.ChangePivotCache ThisWorkbook.PivotCaches.Create( _
-                SourceType:=xlDatabase, _
-                SourceData:=NewSourceData.UsedRange)
+                xlDatabase, NewSourceData.UsedRange)
             PivotTable.RefreshTable
         Next PivotTable
     Next wsPivot
