@@ -3,7 +3,6 @@ Sub LoadSourceData()
     Dim SourceFile As String
     Dim NewSourceData As Worksheet
     Dim SourceDataExists As Boolean
-    Dim LastRow As Long, LastCol As Long
     Dim SourceWorkbook As Workbook
     Dim ThisWorkbook As Workbook
     Dim PivotTable As PivotTable
@@ -54,11 +53,16 @@ Sub LoadSourceData()
         ' Open the selected CSV file
         Set CSVData = Workbooks.Open(SourceFile)
         
-        ' Copy the data from the CSV to a new sheet in this workbook
-        CSVData.Sheets(1).UsedRange.Copy
+        ' Add a new sheet for the CSV data
         Set NewSourceData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-        NewSourceData.PasteSpecial Paste:=xlPasteValues
         NewSourceData.Name = "SourceData"
+        
+        ' Copy the data from the CSV
+        CSVData.Sheets(1).UsedRange.Copy
+        
+        ' Activate the new sheet and paste the data
+        NewSourceData.Activate
+        NewSourceData.Range("A1").PasteSpecial Paste:=xlPasteValues
         
         ' Close the CSV file without saving
         CSVData.Close False
