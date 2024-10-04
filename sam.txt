@@ -1,69 +1,57 @@
-Dim isHidden As Boolean ' Track whether columns are currently hidden
-
-Sub ToggleZeroSumColumns()
-    Dim pt As PivotTable
+Sub LoadSourceData()
     Dim ws As Worksheet
-    Dim lastCol As Long
-    Dim i As Long
-    Dim colSum As Double
-    Dim j As Long
-    Dim cellValue As Double
-    Dim btn As Button
+    Dim SourceFile As String
+    Dim NewSourceData As Worksheet
+    Dim SourceDataExists As Boolean
+    Dim LastRow As Long, LastCol As Long
+    Dim SourceWorkbook As Workbook
+    Dim ThisWorkbook As Workbook
+    Dim PivotTable As PivotTable
+    Dim wsPivot As Worksheet
     
-    Set ws = ThisWorkbook.Sheets("BU_pivot")
-    Set pt = ws.PivotTables("PivotTable2") ' Use the name of your pivot table
-    Set btn = ws.Buttons("Button1")
+    ' Set reference to the workbook with the pivot tables
+    Set ThisWorkbook = ActiveWorkbook
     
-    ' Get the last column in the PivotTable's data range
-    lastCol = pt.DataBodyRange.Columns.Count
+    ' Open file dialog to select the source data file
+    SourceFile = Application.GetOpenFilename(FileFilter:="Excel Files (*.xls; *.xlsx), *.xls; *.xlsx", Title:="Select the Source Data File")
     
-    ' Always unhide all columns first before applying the new logic
-    For i = 1 To lastCol
-        ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = False
-    Next i
+    ' Exit if no file is selected
+    If SourceFile = "False" Then Exit Sub
     
-    ' Check the current state of isHidden
-    If isHidden Then
-        ' Hide columns where the sum is zero
-        For i = 1 To lastCol
-            colSum = 0
-            ' Loop through each cell in the column to calculate the sum
-            For j = 1 To pt.DataBodyRange.Rows.Count
-                cellValue = 0 ' Default to 0 in case of non-numeric or empty cells
-                On Error Resume Next
-                cellValue = CLng(pt.DataBodyRange.Cells(j, i).Value) ' Convert to integer (CLng)
-                On Error GoTo 0
-                colSum = colSum + cellValue
-            Next j
-            
-            ' Hide the column if the sum is zero
-            If colSum = 0 Then
-                ws.Columns(pt.DataBodyRange.Cells(1, i).Column).EntireColumn.Hidden = True
-            End If
-        Next i
-    End If
-End Sub
-
-Sub Button_Click()
-    Dim ws As Worksheet
-    Dim btn As Button
-    Set ws = ThisWorkbook.Sheets("BU_pivot")
-    Set btn = ws.Buttons("Button1")
+    ' Check if "SourceData" worksheet already exists and delete if it does
+    SourceDataExists = False
+    For Each ws In ThisWorkbook.Sheets
+        If ws.Name = "SourceData" Then
+            Application.DisplayAlerts = False
+            ws.Delete
+            Application.DisplayAlerts = True
+            SourceDataExists = True
+            Exit For
+        End If
+    Next ws
     
-    ' Toggle the state
-    If isHidden Then
-        isHidden = False
-        btn.Caption = "Click to hide"
-    Else
-        isHidden = True
-        btn.Caption = "Click to unhide"
-    End If
+    ' Open the selected source data file
+    Set SourceWorkbook = Workbooks.Open(SourceFile)
     
-    ' Call the function to handle hiding/unhiding
-    Call ToggleZeroSumColumns
-End Sub
-
-Private Sub Worksheet_PivotTableUpdate(ByVal Target As PivotTable)
-    ' When the pivot table is updated (e.g., filter is changed), maintain the current hidden state
-    Call ToggleZeroSumColumns
+    ' Copy data from the first sheet of the source data file to this workbook
+    SourceWorkbook.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+    Set NewSourceData = ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+    
+    ' Rename the new sheet to "SourceData"
+    NewSourceData.Name = "SourceData"
+    
+    ' Close the source data file without saving
+    SourceWorkbook.Close False
+    
+    ' Refresh all pivot tables in the workbook
+    For Each wsPivot In ThisWorkbook.Worksheets
+        For Each PivotTable In wsPivot.PivotTables
+            PivotTable.ChangePivotCache ThisWorkbook.PivotCaches.Create( _
+                SourceType:=xlDatabase, _
+                SourceData:=NewSourceData.UsedRange)
+            PivotTable.RefreshTable
+        Next PivotTable
+    Next wsPivot
+    
+    MsgBox "Source data has been updated and pivot tables refreshed.", vbInformation
 End Sub
