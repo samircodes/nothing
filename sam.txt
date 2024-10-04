@@ -8,15 +8,20 @@ Sub LoadSourceData()
     Dim ThisWorkbook As Workbook
     Dim PivotTable As PivotTable
     Dim wsPivot As Worksheet
+    Dim FileExt As String
+    Dim CSVData As Workbook
     
     ' Set reference to the workbook with the pivot tables
     Set ThisWorkbook = ActiveWorkbook
     
     ' Open file dialog to select the source data file
-    SourceFile = Application.GetOpenFilename(FileFilter:="Excel Files (*.xls; *.xlsx), *.xls; *.xlsx", Title:="Select the Source Data File")
+    SourceFile = Application.GetOpenFilename(FileFilter:="Excel & CSV Files (*.xls; *.xlsx; *.csv), *.xls; *.xlsx; *.csv", Title:="Select the Source Data File")
     
     ' Exit if no file is selected
     If SourceFile = "False" Then Exit Sub
+    
+    ' Get the file extension to identify the file type
+    FileExt = LCase(Right(SourceFile, Len(SourceFile) - InStrRev(SourceFile, ".")))
     
     ' Check if "SourceData" worksheet already exists and delete if it does
     SourceDataExists = False
@@ -30,18 +35,37 @@ Sub LoadSourceData()
         End If
     Next ws
     
-    ' Open the selected source data file
-    Set SourceWorkbook = Workbooks.Open(SourceFile)
+    ' Handle Excel or CSV files
+    If FileExt = "xls" Or FileExt = "xlsx" Then
+        ' Open the selected source data Excel file
+        Set SourceWorkbook = Workbooks.Open(SourceFile)
+        
+        ' Copy data from the first sheet of the source data file to this workbook
+        SourceWorkbook.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        Set NewSourceData = ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        
+        ' Rename the new sheet to "SourceData"
+        NewSourceData.Name = "SourceData"
+        
+        ' Close the source data file without saving
+        SourceWorkbook.Close False
     
-    ' Copy data from the first sheet of the source data file to this workbook
-    SourceWorkbook.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
-    Set NewSourceData = ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
-    
-    ' Rename the new sheet to "SourceData"
-    NewSourceData.Name = "SourceData"
-    
-    ' Close the source data file without saving
-    SourceWorkbook.Close False
+    ElseIf FileExt = "csv" Then
+        ' Open the selected CSV file
+        Set CSVData = Workbooks.Open(SourceFile)
+        
+        ' Copy the data from the CSV to a new sheet in this workbook
+        CSVData.Sheets(1).UsedRange.Copy
+        Set NewSourceData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        NewSourceData.PasteSpecial Paste:=xlPasteValues
+        NewSourceData.Name = "SourceData"
+        
+        ' Close the CSV file without saving
+        CSVData.Close False
+    Else
+        MsgBox "Unsupported file type. Please select an Excel or CSV file.", vbExclamation
+        Exit Sub
+    End If
     
     ' Refresh all pivot tables in the workbook
     For Each wsPivot In ThisWorkbook.Worksheets
