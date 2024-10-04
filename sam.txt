@@ -57,12 +57,8 @@ Sub LoadSourceData()
         Set NewSourceData = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
         NewSourceData.Name = "SourceData"
         
-        ' Copy the data from the CSV
-        CSVData.Sheets(1).UsedRange.Copy
-        
-        ' Activate the new sheet and paste the data
-        NewSourceData.Activate
-        NewSourceData.Range("A1").PasteSpecial Paste:=xlPasteValues
+        ' Copy the data from the CSV and paste it directly into the new sheet
+        NewSourceData.Range("A1").Resize(CSVData.Sheets(1).UsedRange.Rows.Count, CSVData.Sheets(1).UsedRange.Columns.Count).Value = CSVData.Sheets(1).UsedRange.Value
         
         ' Close the CSV file without saving
         CSVData.Close False
