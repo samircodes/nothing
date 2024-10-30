@@ -1,0 +1,135 @@
+import pandas as pd
+
+def LossesToRemainOnBookingEntity_Calculation(df):
+    def calculate_loss(row):
+        inTotalRPS = row['inTotalRPS']
+        inAdjNetRev = row['inAdjNetRev']
+        inTCMAdjPost = row['inTCMAdjPost']
+        
+        if inTotalRPS <= 0:
+            if inAdjNetRev + inTCMAdjPost <= 0:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                    else:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+            else:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                    else:
+                        LossToRetain = inAdjNetRev
+        else:
+            if inAdjNetRev + inTCMAdjPost <= 0:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                    else:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+            else:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                    else:
+                        LossToRetain = inAdjNetRev
+        return LossToRetain
+
+    # Apply the calculation to each row in the DataFrame
+    df['LossToRetain'] = df.apply(calculate_loss, axis=1)
+    return df[['LossToRetain']]
+
+
+# Example DataFrame
+data = {
+    'inTotalRPS': [0, 1, -1],
+    'inAdjNetRev': [10, -5, 0],
+    'inTCMAdjPost': [5, -5, 0]
+}
+df = pd.DataFrame(data)
+
+# Calculate LossToRetain
+result_df = LossesToRemainOnBookingEntity_Calculation(df)
+print(result_df)
+
+
+
+
+
+import pandas as pd
+import numpy as np
+
+def LossesToRemainOnBookingEntity_Calculation(df):
+    # Initialize LossToRetain column with a default value of 0
+    df['LossToRetain'] = 0
+
+    # Case 1: When inTotalRPS <= 0 and other nested conditions
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] <= 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] <= 0),
+        df['inAdjNetRev'] + df['inTCMAdjPost'], 
+        df['LossToRetain']
+    )
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] <= 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] > 0),
+        df['inAdjNetRev'], 
+        df['LossToRetain']
+    )
+
+    # Case 2: When inTotalRPS > 0 and other nested conditions
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] < 0) & (df['inTCMAdjPost'] >= 0),
+        df['inAdjNetRev'] + df['inTCMAdjPost'], 
+        df['LossToRetain']
+    )
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] == 0) & (df['inTCMAdjPost'] >= 0),
+        df['inAdjNetRev'] + df['inTCMAdjPost'], 
+        df['LossToRetain']
+    )
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] <= 0),
+        df['inAdjNetRev'] + df['inTCMAdjPost'], 
+        df['LossToRetain']
+    )
+    df['LossToRetain'] = np.where(
+        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] > 0),
+        df['inAdjNetRev'], 
+        df['LossToRetain']
+    )
+
+    return df[['LossToRetain']]
+
+# Example DataFrame
+data = {
+    'inTotalRPS': [0, 1, -1, 1],
+    'inAdjNetRev': [10, -5, 0, 10],
+    'inTCMAdjPost': [5, -5, 0, -3]
+}
+df = pd.DataFrame(data)
+
+# Calculate LossToRetain
+result_df = LossesToRemainOnBookingEntity_Calculation(df)
+print(result_df)
