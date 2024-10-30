@@ -31,3 +31,44 @@ def LossesToRemainOnBookingEntity_Calculation(inTotalRPS, inAdjNetRev, inTCMAdjP
     )
     
     return LossToRetain
+
+
+import pandas as pd
+
+# Create a DataFrame with dummy data
+data = {
+    'inTotalRPS': [-4, 9, 4, 0, -3, -4, 8, 0, 0, -7],
+    'inAdjNetRev': [-3, -8, -9, 1, -5, -9, -10, 1, 1, 6],
+    'inTCMAdjPost': [-1, 5, 4, 4, 8, 1, 9, -8, -6, 8]
+}
+df = pd.DataFrame(data)
+
+# Define the function without using numpy
+def LossesToRemainOnBookingEntity_Calculation(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    if inTotalRPS <= 0:
+        if inAdjNetRev >= 0 and inTCMAdjPost >= 0:
+            return 0  # Scenario 6
+        elif inAdjNetRev < 0 and inTCMAdjPost >= 0:
+            return 0  # Scenario 7
+        elif inAdjNetRev < 0 and inTCMAdjPost < 0:
+            return 0  # Scenario 1
+        elif inAdjNetRev >= 0 and inTCMAdjPost < 0:
+            return 0  # Scenario 8
+        else:
+            return inAdjNetRev + inTCMAdjPost  # Default scenario
+    else:
+        if inAdjNetRev >= 0 and inTCMAdjPost >= 0:
+            return 0  # Scenario 3
+        elif inAdjNetRev < 0 and inTCMAdjPost >= 0:
+            return inAdjNetRev  # Scenario 2
+        elif inAdjNetRev < 0 and inTCMAdjPost < 0:
+            return inAdjNetRev + inTCMAdjPost  # Scenario 5
+        else:
+            return inAdjNetRev + inTCMAdjPost  # Scenario 4
+
+# Apply the function to each row in the DataFrame
+df['LossToRetain'] = df.apply(lambda row: LossesToRemainOnBookingEntity_Calculation(
+    row['inTotalRPS'], row['inAdjNetRev'], row['inTCMAdjPost']), axis=1)
+
+# Display the resulting DataFrame
+print(df)
