@@ -1,0 +1,33 @@
+def LossesToRemainOnBookingEntity_Calculation(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    # Initialize a result array to store LossToRetain values
+    LossToRetain = np.zeros(len(inTotalRPS))
+    
+    # Apply vectorized conditional logic with np.where
+    LossToRetain = np.where(
+        inTotalRPS <= 0,
+        np.where(
+            (inAdjNetRev >= 0) & (inTCMAdjPost >= 0), 0,  # Scenario 6
+            np.where(
+                (inAdjNetRev < 0) & (inTCMAdjPost >= 0), 0,  # Scenario 7
+                np.where(
+                    (inAdjNetRev < 0) & (inTCMAdjPost < 0), 0,  # Scenario 1
+                    np.where(
+                        (inAdjNetRev >= 0) & (inTCMAdjPost < 0), 0,  # Scenario 8
+                        inAdjNetRev + inTCMAdjPost  # Default scenario
+                    )
+                )
+            )
+        ),
+        np.where(
+            (inAdjNetRev >= 0) & (inTCMAdjPost >= 0), 0,  # Scenario 3
+            np.where(
+                (inAdjNetRev < 0) & (inTCMAdjPost >= 0), inAdjNetRev,  # Scenario 2
+                np.where(
+                    (inAdjNetRev < 0) & (inTCMAdjPost < 0), inAdjNetRev + inTCMAdjPost,  # Scenario 5
+                    inAdjNetRev + inTCMAdjPost  # Scenario 4
+                )
+            )
+        )
+    )
+    
+    return LossToRetain
