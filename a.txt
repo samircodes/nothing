@@ -1,5 +1,101 @@
 import pandas as pd
 
+def LossesToRemainOnBookingEntity_Calculation(inTotalRPS_col, inAdjNetRev_col, inTCMAdjPost_col):
+    # Convert columns to lists
+    inTotalRPS_list = inTotalRPS_col.tolist()
+    inAdjNetRev_list = inAdjNetRev_col.tolist()
+    inTCMAdjPost_list = inTCMAdjPost_col.tolist()
+    
+    LossToRetain_list = []  
+    
+    # Looping through the lists and calculate LossToRetain for each set of values
+    for inTotalRPS, inAdjNetRev, inTCMAdjPost in zip(inTotalRPS_list, inAdjNetRev_list, inTCMAdjPost_list):
+        if inTotalRPS <= 0:
+            if inAdjNetRev + inTCMAdjPost <= 0:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                    else:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+            else:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                    else:
+                        LossToRetain = inAdjNetRev
+        else:
+            if inAdjNetRev + inTCMAdjPost <= 0:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                    else:
+                        LossToRetain = 0
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = 0
+            else:
+                if inAdjNetRev < 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                elif inAdjNetRev == 0:
+                    if inTCMAdjPost >= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                else:
+                    if inTCMAdjPost <= 0:
+                        LossToRetain = inAdjNetRev + inTCMAdjPost
+                    else:
+                        LossToRetain = inAdjNetRev
+        
+        # Append the calculated value to the list
+        LossToRetain_list.append(LossToRetain)
+    
+    # Return the list as a DataFrame column
+    return pd.Series(LossToRetain_list)
+
+# Example usage:
+data = {
+    'inTotalRPS': [0,1,-1,1],
+    'inAdjNetRev': [10,-5,0,10],
+    'inTCMAdjPost': [5,-5,0,-3]
+}
+TP = pd.DataFrame(data)
+LTR = pd.DataFrame(data)
+# Call the function and assign the result to a new DataFrame column
+LTR['LossToRetain'] = LossesToRemainOnBookingEntity_Calculation(TP['inTotalRPS'], TP['inAdjNetRev'], TP['inTCMAdjPost'])
+print(LTR[['LossToRetain']])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
 def LossesToRemainOnBookingEntity_Calculation(df):
     def calculate_loss(row):
         inTotalRPS = row['inTotalRPS']
