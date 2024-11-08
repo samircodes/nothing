@@ -1,0 +1,33 @@
+def get_quarters_and_years(input_str):
+    # Extract quarter and year from the input string (e.g., "Q225")
+    quarter_start = int(input_str[1])  # Extract the quarter (e.g., 2 from "Q225")
+    year_start = int(input_str[2:])   # Extract the year (e.g., 2025 from "Q225")
+    
+    # Define the quarter sequence and lists to hold the results
+    quarters_sequence = [2, 3, 4, 1]  # Quarter cycle [2, 3, 4, 1]
+    years_sequence = []  # Will hold the years numerically
+    
+    quarters = []  # To store quarters as numbers: [2, 3, 4, 1, ...]
+    years = []  # To store years numerically: [1 for 2025, 2 for 2026, ...]
+    
+    # Start populating quarters and years
+    for i in range(10):  # We need 10 entries (4 quarters per year, for 3 years)
+        quarter = quarters_sequence[(quarter_start - 1) % 4]  # Get the quarter number
+        quarters.append(quarter)  # Append the quarter number
+        
+        # Add the corresponding year number (1 for 2025, 2 for 2026, etc.)
+        years.append(year_start - 2024)  # Map year to 1 for 2025, 2 for 2026, etc.
+        
+        # Update the quarter and year for the next iteration
+        quarter_start += 1
+        if quarter_start > 4:
+            quarter_start = 1
+            year_start += 1
+    
+    return quarters, years
+
+# Example usage
+input_str = "Q225"  # Example input
+quarters, years = get_quarters_and_years(input_str)
+print("Quarters:", quarters)
+print("Years:", years)
