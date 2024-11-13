@@ -1,33 +1,81 @@
-def get_quarters_and_years(input_str):
-    # Extract quarter and year from the input string (e.g., "Q225")
-    quarter_start = int(input_str[1])  # Extract the quarter (e.g., 2 from "Q225")
-    year_start = int(input_str[2:])   # Extract the year (e.g., 2025 from "Q225")
-    
-    # Define the quarter sequence and lists to hold the results
-    quarters_sequence = [2, 3, 4, 1]  # Quarter cycle [2, 3, 4, 1]
-    years_sequence = []  # Will hold the years numerically
-    
-    quarters = []  # To store quarters as numbers: [2, 3, 4, 1, ...]
-    years = []  # To store years numerically: [1 for 2025, 2 for 2026, ...]
-    
-    # Start populating quarters and years
-    for i in range(10):  # We need 10 entries (4 quarters per year, for 3 years)
-        quarter = quarters_sequence[(quarter_start - 1) % 4]  # Get the quarter number
-        quarters.append(quarter)  # Append the quarter number
-        
-        # Add the corresponding year number (1 for 2025, 2 for 2026, etc.)
-        years.append(year_start - 2024)  # Map year to 1 for 2025, 2 for 2026, etc.
-        
-        # Update the quarter and year for the next iteration
-        quarter_start += 1
-        if quarter_start > 4:
-            quarter_start = 1
-            year_start += 1
-    
-    return quarters, years
+import numpy as np
+import pandas as pd
 
-# Example usage
-input_str = "Q225"  # Example input
-quarters, years = get_quarters_and_years(input_str)
-print("Quarters:", quarters)
-print("Years:", years)
+# Define the function to calculate LossToRetain values
+def LossesToRemainOnBookingEntity_Calculation(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    # Initialize LossToRetain with a default value of 0
+    LossToRetain = pd.Series(0, index=inTotalRPS.index)
+
+    # Case 1: When inTotalRPS <= 0 and other nested conditions
+    LossToRetain = np.where(
+        (inTotalRPS <= 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS <= 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+        inAdjNetRev,
+        LossToRetain
+    )
+
+    # Case 2: When inTotalRPS > 0 and other nested conditions
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev < 0) & (inTCMAdjPost >= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev == 0) & (inTCMAdjPost >= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+        inAdjNetRev,
+        LossToRetain
+    )
+
+    return pd.Series(LossToRetain, index=inTotalRPS.index)
+
+# Dummy data setup
+ColumnCount = 5
+ResidualProfitForAllocation = [50]  # Last value will be replicated
+AdjustedNetRevenues = [10, -5, 0, 15, -2]
+TCMAdjustmentPost = [5, -5, 0, -3, 3]
+Initiating_NonInitiatingList_v1 = ["Initiating", "Non-Initiating", "Non-Initiating", "Initiating", "Non-Initiating"]
+
+# Convert lists to numpy arrays and Series
+ResidualProfitForAllocation_array = np.array([ResidualProfitForAllocation[-1]] * ColumnCount)
+AdjustedNetRevenues_array = np.array(AdjustedNetRevenues)
+TCMAdjustmentPost_array = np.array(TCMAdjustmentPost)
+is_initiating = np.array([x.upper() == "INITIATING" for x in Initiating_NonInitiatingList_v1])
+
+# Initialize arrays for output with zeros (for vectorized method)
+LossesToRemainOnBookingEntity = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_NoSL = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_UKG = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_NonUKG = np.zeros(ColumnCount)
+
+# Calculate LossToRetain values for all non-initiating entries (vectorized approach)
+losses_calculated = LossesToRemainOnBookingEntity_Calculation(
+    pd.Series(ResidualProfitForAllocation_array),
+    pd.Series(AdjustedNetRevenues_array),
+    pd.Series(TCMAdjustmentPost_array)
+)
+
+# Apply the calculated losses only to non-initiating entries
+LossesToRemainOnBookingEntity[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_NoSL[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_UKG[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_NonUKG[~is_initiating] = losses_calculated[~is_initiating]
+
+# Convert back to lists for easier viewing
+print("LossesToRemainOnBookingEntity:", LossesToRemainOnBookingEntity.tolist())
+print("LossesToRemainOnBookingEntity_NoSL:", LossesToRemainOnBookingEntity_NoSL.tolist())
+print("LossesToRemainOnBookingEntity_UKG:", LossesToRemainOnBookingEntity_UKG.tolist())
+print("LossesToRemainOnBookingEntity_NonUKG:", LossesToRemainOnBookingEntity_NonUKG.tolist())
