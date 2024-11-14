@@ -79,3 +79,98 @@ print("LossesToRemainOnBookingEntity:", LossesToRemainOnBookingEntity.tolist())
 print("LossesToRemainOnBookingEntity_NoSL:", LossesToRemainOnBookingEntity_NoSL.tolist())
 print("LossesToRemainOnBookingEntity_UKG:", LossesToRemainOnBookingEntity_UKG.tolist())
 print("LossesToRemainOnBookingEntity_NonUKG:", LossesToRemainOnBookingEntity_NonUKG.tolist())
+
+
+
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+
+# Define the function to calculate LossToRetain values
+def LossesToRemainOnBookingEntity_Calculation(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    # Initialize LossToRetain with a default value of 0
+    LossToRetain = pd.Series(0, index=inTotalRPS.index)
+
+    # Case 1: When inTotalRPS <= 0 and other nested conditions
+    LossToRetain = np.where(
+        (inTotalRPS <= 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS <= 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+        inAdjNetRev,
+        LossToRetain
+    )
+
+    # Case 2: When inTotalRPS > 0 and other nested conditions
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev < 0) & (inTCMAdjPost >= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev == 0) & (inTCMAdjPost >= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+        inAdjNetRev + inTCMAdjPost,
+        LossToRetain
+    )
+    LossToRetain = np.where(
+        (inTotalRPS > 0) & (inAdjNetRev + inTCMAdjPost > 0) & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+        inAdjNetRev,
+        LossToRetain
+    )
+
+    return pd.Series(LossToRetain, index=inTotalRPS.index)
+
+# Dummy data setup
+ColumnCount = 5
+ResidualProfitForAllocation = [50]  # Last value will be replicated
+AdjustedNetRevenues = [10, -5, 0, 15, -2]
+TCMAdjustmentPost = [5, -5, 0, -3, 3]
+Initiating_NonInitiatingList_v1 = ["Initiating", "Non-Initiating", "Non-Initiating", "Initiating", "Non-Initiating"]
+
+# Convert lists to numpy arrays and Series
+ResidualProfitForAllocation_array = np.array([ResidualProfitForAllocation[-1]] * ColumnCount)
+AdjustedNetRevenues_array = np.array(AdjustedNetRevenues)
+TCMAdjustmentPost_array = np.array(TCMAdjustmentPost)
+is_initiating = np.array([x.upper() == "INITIATING" for x in Initiating_NonInitiatingList_v1])
+
+# Initialize arrays for output with zeros (for vectorized method)
+LossesToRemainOnBookingEntity = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_NoSL = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_UKG = np.zeros(ColumnCount)
+LossesToRemainOnBookingEntity_NonUKG = np.zeros(ColumnCount)
+
+# Calculate LossToRetain values for all non-initiating entries (vectorized approach)
+losses_calculated = LossesToRemainOnBookingEntity_Calculation(
+    pd.Series(ResidualProfitForAllocation_array),
+    pd.Series(AdjustedNetRevenues_array),
+    pd.Series(TCMAdjustmentPost_array)
+)
+
+# Apply the calculated losses only to non-initiating entries
+LossesToRemainOnBookingEntity[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_NoSL[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_UKG[~is_initiating] = losses_calculated[~is_initiating]
+LossesToRemainOnBookingEntity_NonUKG[~is_initiating] = losses_calculated[~is_initiating]
+
+# Convert back to lists for easier viewing
+print("LossesToRemainOnBookingEntity:", LossesToRemainOnBookingEntity.tolist())
+print("LossesToRemainOnBookingEntity_NoSL:", LossesToRemainOnBookingEntity_NoSL.tolist())
+print("LossesToRemainOnBookingEntity_UKG:", LossesToRemainOnBookingEntity_UKG.tolist())
+print("LossesToRemainOnBookingEntity_NonUKG:", LossesToRemainOnBookingEntity_NonUKG.tolist())
+
