@@ -1,0 +1,182 @@
+import numpy as np
+import pandas as pd
+
+# Define the first function (Original version)
+def LossesToRemainOnBookingEntity_Calculation_Original(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    LossToRetain = pd.Series(0, index=inTotalRPS.index)
+    
+    if inTotalRPS <= 0:
+        if inAdjNetRev + inTCMAdjPost <= 0:
+            if inAdjNetRev < 0:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = 0
+                else:
+                    LossToRetain = 0
+            elif inAdjNetRev == 0:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = 0
+            else:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = 0
+        else:
+            if inAdjNetRev < 0:
+                if inTCMAdjPost >= 0:
+                    LossToRetain = 0
+            elif inAdjNetRev == 0:
+                if inTCMAdjPost >= 0:
+                    LossToRetain = 0
+            else:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = inAdjNetRev + inTCMAdjPost
+                else:
+                    LossToRetain = inAdjNetRev
+    else:
+        if inAdjNetRev + inTCMAdjPost <= 0:
+            if inAdjNetRev < 0:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = 0
+                else:
+                    LossToRetain = 0
+            elif inAdjNetRev == 0:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = 0
+        else:
+            if inAdjNetRev < 0:
+                if inTCMAdjPost >= 0:
+                    LossToRetain = inAdjNetRev + inTCMAdjPost
+            elif inAdjNetRev == 0:
+                if inTCMAdjPost >= 0:
+                    LossToRetain = inAdjNetRev + inTCMAdjPost
+            else:
+                if inTCMAdjPost <= 0:
+                    LossToRetain = inAdjNetRev + inTCMAdjPost
+                else:
+                    LossToRetain = inAdjNetRev
+    return LossToRetain
+
+# Define the second function (NumPy version)
+def LossesToRemainOnBookingEntity_Calculation_NumPy(inTotalRPS, inAdjNetRev, inTCMAdjPost):
+    # Initialize LossToRetain with default value of 0
+    LossToRetain = np.zeros(len(inTotalRPS))
+    
+    # Case 1: When inTotalRPS <= 0
+    case1 = inTotalRPS <= 0
+    if np.any(case1):
+        # Sub-case 1.1: When inAdjNetRev + inTCMAdjPost <= 0
+        sub_case1_1 = case1 & (inAdjNetRev + inTCMAdjPost <= 0)
+        if np.any(sub_case1_1):
+            LossToRetain = np.where(
+                sub_case1_1 & (inAdjNetRev < 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case1_1 & (inAdjNetRev == 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case1_1 & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+
+        # Sub-case 1.2: When inAdjNetRev + inTCMAdjPost > 0
+        sub_case1_2 = case1 & (inAdjNetRev + inTCMAdjPost > 0)
+        if np.any(sub_case1_2):
+            LossToRetain = np.where(
+                sub_case1_2 & (inAdjNetRev < 0) & (inTCMAdjPost >= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case1_2 & (inAdjNetRev == 0) & (inTCMAdjPost >= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case1_2 & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+                inAdjNetRev + inTCMAdjPost,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case1_2 & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+                inAdjNetRev,
+                LossToRetain
+            )
+
+    # Case 2: When inTotalRPS > 0
+    case2 = inTotalRPS > 0
+    if np.any(case2):
+        # Sub-case 2.1: When inAdjNetRev + inTCMAdjPost <= 0
+        sub_case2_1 = case2 & (inAdjNetRev + inTCMAdjPost <= 0)
+        if np.any(sub_case2_1):
+            LossToRetain = np.where(
+                sub_case2_1 & (inAdjNetRev < 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case2_1 & (inAdjNetRev == 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case2_1 & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+                0,
+                LossToRetain
+            )
+
+        # Sub-case 2.2: When inAdjNetRev + inTCMAdjPost > 0
+        sub_case2_2 = case2 & (inAdjNetRev + inTCMAdjPost > 0)
+        if np.any(sub_case2_2):
+            LossToRetain = np.where(
+                sub_case2_2 & (inAdjNetRev < 0) & (inTCMAdjPost >= 0),
+                inAdjNetRev + inTCMAdjPost,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case2_2 & (inAdjNetRev == 0) & (inTCMAdjPost >= 0),
+                inAdjNetRev + inTCMAdjPost,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case2_2 & (inAdjNetRev > 0) & (inTCMAdjPost <= 0),
+                inAdjNetRev + inTCMAdjPost,
+                LossToRetain
+            )
+            LossToRetain = np.where(
+                sub_case2_2 & (inAdjNetRev > 0) & (inTCMAdjPost > 0),
+                inAdjNetRev,
+                LossToRetain
+            )
+
+    return pd.Series(LossToRetain, index=inTotalRPS.index)
+
+
+# Create sample data
+data = {
+    'inTotalRPS': [0, -1, 1, 2],
+    'inAdjNetRev': [-10, 20, -5, 10],
+    'inTCMAdjPost': [-5, 10, 5, -5]
+}
+
+df = pd.DataFrame(data)
+
+# Run both functions on the sample data
+original_result = df.apply(
+    lambda row: LossesToRemainOnBookingEntity_Calculation_Original(
+        row['inTotalRPS'], row['inAdjNetRev'], row['inTCMAdjPost']
+    ), axis=1
+)
+
+numpy_result = df.apply(
+    lambda row: LossesToRemainOnBookingEntity_Calculation_NumPy(
+        row['inTotalRPS'], row['inAdjNetRev'], row['inTCMAdjPost']
+    ), axis=1
+)
+
+# Compare the results
+comparison = original_result.equals(numpy_result)
+
+print("Comparison Result: ", comparison)
