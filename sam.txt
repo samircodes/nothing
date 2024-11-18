@@ -1,3 +1,68 @@
+import numpy as np
+import pandas as pd
+
+def PBTAllocation_Calculation(
+    inResidualProfitforAlloc, 
+    inCapitalAllocPct, 
+    inTraderAllocPct, 
+    inAllocPct, 
+    inGlobalTraderComp, 
+    inGlobalCapitalMeas, 
+    inAllocToTrading, 
+    inAllocToCapital
+):
+    # Calculate conditions as arrays
+    cond1 = inResidualProfitforAlloc <= 0
+    cond2 = (
+        inResidualProfitforAlloc * inGlobalTraderComp /
+        (inGlobalCapitalMeas + inGlobalTraderComp) > inGlobalTraderComp
+    )
+    
+    # Perform calculations based on conditions
+    result = np.where(
+        cond1,
+        inResidualProfitforAlloc * inAllocPct,  # Condition 1: if <= 0
+        np.where(
+            cond2,
+            inAllocToCapital * inTraderAllocPct + inAllocToTrading * inTraderAllocPct,  # Condition 2: nested
+            inResidualProfitforAlloc * inAllocPct  # Else
+        )
+    )
+    
+    return result
+# Example input data
+data = {
+    "inResidualProfitforAlloc": [100, -50, 200, 0],
+    "inCapitalAllocPct": [0.1, 0.2, 0.3, 0.4],
+    "inTraderAllocPct": [0.5, 0.6, 0.7, 0.8],
+    "inAllocPct": [0.2, 0.3, 0.4, 0.5],
+    "inGlobalTraderComp": [1000, 1000, 1000, 1000],
+    "inGlobalCapitalMeas": [500, 500, 500, 500],
+    "inAllocToTrading": [300, 300, 300, 300],
+    "inAllocToCapital": [200, 200, 200, 200],
+}
+
+df = pd.DataFrame(data)
+
+# Apply vectorized function
+df["PBTAllocation"] = PBTAllocation_Calculation(
+    df["inResidualProfitforAlloc"], 
+    df["inCapitalAllocPct"], 
+    df["inTraderAllocPct"], 
+    df["inAllocPct"], 
+    df["inGlobalTraderComp"], 
+    df["inGlobalCapitalMeas"], 
+    df["inAllocToTrading"], 
+    df["inAllocToCapital"]
+)
+
+print(df)
+
+
+
+
+
+
 Sub LoadSourceData()
     Dim ws As Worksheet
     Dim SourceFile As String
