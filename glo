@@ -5,6 +5,92 @@ def GlobalAllocation_Calculation(
     inProfit, inNetRevSubjectToRPS, inCapitalPricing, inTraderComp, inTotalPricing
 ):
     # Case 1: When profit is less than or equal to zero
+    capital_allocation_case1 = (
+        (inProfit <= 0) * (inProfit * inCapitalPricing / inTotalPricing)
+    )
+    trader_allocation_case1 = (
+        (inProfit <= 0) * (inProfit * inTraderComp / inTotalPricing)
+    )
+
+    # Case 2: When profit is greater than zero and inNetRevSubjectToRPS <= 0
+    capital_allocation_case2 = (
+        ((inProfit > 0) & (inNetRevSubjectToRPS <= 0))
+        * np.maximum(
+            inProfit * inCapitalPricing / inTotalPricing,
+            inProfit - inTraderComp
+        )
+    )
+    trader_allocation_case2 = (
+        ((inProfit > 0) & (inNetRevSubjectToRPS <= 0))
+        * np.minimum(
+            inProfit * inTraderComp / inTotalPricing,
+            inTraderComp
+        )
+    )
+
+    # Case 3: When profit is greater than zero and inNetRevSubjectToRPS > 0
+    capital_allocation_case3 = (
+        ((inProfit > 0) & (inNetRevSubjectToRPS > 0))
+        * (inProfit - inTraderComp)
+    )
+    trader_allocation_case3 = (
+        ((inProfit > 0) & (inNetRevSubjectToRPS > 0))
+        * inTraderComp
+    )
+
+    # Combine all cases
+    capital_allocation = (
+        capital_allocation_case1
+        + capital_allocation_case2
+        + capital_allocation_case3
+    )
+    trader_allocation = (
+        trader_allocation_case1
+        + trader_allocation_case2
+        + trader_allocation_case3
+    )
+
+    return capital_allocation, trader_allocation
+
+# Dummy data for testing
+data = {
+    "inProfit": [100, -50, 200, 0],
+    "inNetRevSubjectToRPS": [-10, 20, -5, 0],
+    "inCapitalPricing": [50, 60, 70, 80],
+    "inTraderComp": [30, 40, 50, 60],
+    "inTotalPricing": [100, 100, 100, 100]
+}
+
+# Create DataFrame
+df = pd.DataFrame(data)
+
+# Apply the function
+capital_allocation, trader_allocation = GlobalAllocation_Calculation(
+    df["inProfit"], df["inNetRevSubjectToRPS"], df["inCapitalPricing"], df["inTraderComp"], df["inTotalPricing"]
+)
+
+# Add results to DataFrame
+df["Capital Allocation"] = capital_allocation
+df["Trader Allocation"] = trader_allocation
+
+# Print the DataFrame
+print(df)
+
+
+
+
+
+
+
+
+
+import numpy as np
+import pandas as pd
+
+def GlobalAllocation_Calculation(
+    inProfit, inNetRevSubjectToRPS, inCapitalPricing, inTraderComp, inTotalPricing
+):
+    # Case 1: When profit is less than or equal to zero
     capital_allocation_case1 = np.where(
         inProfit <= 0,
         inProfit * inCapitalPricing / inTotalPricing,
