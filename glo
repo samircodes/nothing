@@ -1,0 +1,58 @@
+import numpy as np
+import pandas as pd
+
+def GlobalAllocation_Calculation(
+    inProfit, inNetRevSubjectToRPS, inCapitalPricing, inTraderComp, inTotalPricing
+):
+    # Case 1: When profit is less than or equal to zero
+    capital_allocation_case1 = np.where(
+        inProfit <= 0,
+        inProfit * inCapitalPricing / inTotalPricing,
+        np.nan
+    )
+    trader_allocation_case1 = np.where(
+        inProfit <= 0,
+        inProfit * inTraderComp / inTotalPricing,
+        np.nan
+    )
+
+    # Case 2: When profit is greater than zero and inNetRevSubjectToRPS <= 0
+    capital_allocation_case2 = np.where(
+        (inProfit > 0) & (inNetRevSubjectToRPS <= 0),
+        np.maximum(
+            inProfit * inCapitalPricing / inTotalPricing,
+            inProfit - inTraderComp
+        ),
+        np.nan
+    )
+    trader_allocation_case2 = np.where(
+        (inProfit > 0) & (inNetRevSubjectToRPS <= 0),
+        np.minimum(
+            inProfit * inTraderComp / inTotalPricing,
+            inTraderComp
+        ),
+        np.nan
+    )
+
+    # Case 3: When profit is greater than zero and inNetRevSubjectToRPS > 0
+    capital_allocation_case3 = np.where(
+        (inProfit > 0) & (inNetRevSubjectToRPS > 0),
+        inProfit - inTraderComp,
+        np.nan
+    )
+    trader_allocation_case3 = np.where(
+        (inProfit > 0) & (inNetRevSubjectToRPS > 0),
+        inTraderComp,
+        np.nan
+    )
+
+    # Combine all cases using np.nan_to_num to handle NaN values properly
+    capital_allocation = np.nan_to_num(capital_allocation_case1) + \
+                         np.nan_to_num(capital_allocation_case2) + \
+                         np.nan_to_num(capital_allocation_case3)
+
+    trader_allocation = np.nan_to_num(trader_allocation_case1) + \
+                        np.nan_to_num(trader_allocation_case2) + \
+                        np.nan_to_num(trader_allocation_case3)
+
+    return capital_allocation, trader_allocation
