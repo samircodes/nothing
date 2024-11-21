@@ -51,7 +51,7 @@ def LossesToRemainOnBookingEntity_Calculation_Original(inTotalRPS, inAdjNetRev, 
                 if inTCMAdjPost <= 0:
                     LossToRetain = inAdjNetRev + inTCMAdjPost
                 else:
-                    LossToRetain = inAdjNetRev
+                    LossToRetain = inAdjNetRev + inTCMAdjPost
     return LossToRetain
 
 # Define the second function (NumPy version)
