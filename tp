@@ -27,3 +27,32 @@ for i in range(len(TP)):
     else:
         continue
 
+
+
+import pandas as pd
+
+def compare_dataframes(df1, df2, column_name):
+    """
+    Compares two DataFrames based on a specific column and returns common and different rows.
+    
+    Parameters:
+        df1 (pd.DataFrame): The first DataFrame.
+        df2 (pd.DataFrame): The second DataFrame.
+        column_name (str): The column name to compare.
+
+    Returns:
+        common_rows (pd.DataFrame): Rows that are common in both DataFrames based on the column.
+        different_rows (pd.DataFrame): Rows that are different between the DataFrames based on the column.
+    """
+    if column_name not in df1.columns or column_name not in df2.columns:
+        raise ValueError(f"Column '{column_name}' must exist in both DataFrames.")
+    
+    # Find common rows
+    common_values = pd.merge(df1, df2, on=column_name)
+    
+    # Find different rows
+    df1_diff = df1[~df1[column_name].isin(df2[column_name])]
+    df2_diff = df2[~df2[column_name].isin(df1[column_name])]
+    different_rows = pd.concat([df1_diff, df2_diff], ignore_index=True)
+
+    return common_values, different_rows
