@@ -3,21 +3,27 @@ TP['TCM_Shared'] = 0
 
 # Loop through each row
 for i in range(len(TP)):
-    # Check if the first condition is met
-    if TP['isPBTinProfit'][i] == True and TP['LossesToRemainOnBookingEntity_FirstLoss'][i] == 0:
-        TP['TCM_Shared'][i] = TP['TCMAdjustmentPost'][i]
-    # Check if the second condition is met
-    elif TP['isPBTinProfit'][i] == True and TP['LossesToRemainOnBookingEntity_FirstLoss'][i] != 0 and TP['TCMAdjustmentPost'][i] > 0:
-        TP['TCM_Shared'][i] = (
-            TP['Revenues'][i] +
-            TP['StressLosses'][i] +
-            TP['CPMRevenueAdjustmentPost'][i] +
-            TP['Source_Balance_Adjustment_Rev'][i] +
-            TP['RevenueOffset'][i] +
-            TP['TCMAdjustmentPost'][i] +
-            TP['OPERATING_EXP_ADJ_REV'][i] +
-            TP['LossesToRemainOnBookingEntity_FirstLoss'][i]
-        )
-    # Fallback case
+    # Check if isPBTinProfit is True
+    if TP['isPBTinProfit'][i] == True:
+        # Check if LossesToRemainOnBookingEntity_FirstLoss is 0
+        if TP['LossesToRemainOnBookingEntity_FirstLoss'][i] == 0:
+            TP['TCM_Shared'][i] = TP['TCMAdjustmentPost'][i]
+        # Check if LossesToRemainOnBookingEntity_FirstLoss != 0 and TCMAdjustmentPost > 0
+        elif TP['LossesToRemainOnBookingEntity_FirstLoss'][i] != 0 and TP['TCMAdjustmentPost'][i] > 0:
+            TP['TCM_Shared'][i] = (
+                TP['Revenues'][i] +
+                TP['StressLosses'][i] +
+                TP['CPMRevenueAdjustmentPost'][i] +
+                TP['Source_Balance_Adjustment_Rev'][i] +
+                TP['RevenueOffset'][i] +
+                TP['TCMAdjustmentPost'][i] +
+                TP['OPERATING_EXP_ADJ_REV'][i] +
+                TP['LossesToRemainOnBookingEntity_FirstLoss'][i]
+            )
+        # Fallback case if none of the above sub-conditions are met
+        else:
+            TP['TCM_Shared'][i] = TP['TCMAdjustmentPost'][i]
+    # If isPBTinProfit is not True, skip to the next iteration
     else:
-        TP['TCM_Shared'][i] = TP['TCMAdjustmentPost'][i]
+        continue
+
