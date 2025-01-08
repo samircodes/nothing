@@ -1,3 +1,36 @@
+
+import pandas as pd
+
+# Load your DataFrame (replace with actual loading method)
+df = pd.read_excel("your_file.xlsx")
+
+# Step 1: Calculate pre-exclusion sum for 'Other Expenses'
+other_expenses = df[df['TYPE'] == 'Other Expenses']
+prexclusion_sum = (
+    other_expenses.groupby(['BUSINESS_UNIT', 'LEGAL_ENTITY', 'PERIOD', 'REGION', 'SCENARIO'])['PREXCL']
+    .sum()
+    .reset_index(name='PreExclusion_Sum')
+)
+
+# Step 2: Drop rows with 'Other Other' in LEVEL11 and calculate sums
+filtered_df = df[df['LEVEL11'] != 'Other Other']
+filtered_prexclusion_sum = filtered_df['PREXCL'].sum()
+filtered_postexclusion_sum = filtered_df['POSTEXCL'].sum()
+
+# Step 3: Populate the difference for 'Other Other' in LEVEL11
+difference_prexclusion = prexclusion_sum['PreExclusion_Sum'].sum() - filtered_prexclusion_sum
+difference_postexclusion = df['POSTEXCL'].sum() - filtered_postexclusion_sum
+
+# Add the differences to rows with 'Other Other' in LEVEL11
+df.loc[df['LEVEL11'] == 'Other Other', 'PREXCL_Difference'] = difference_prexclusion
+df.loc[df['LEVEL11'] == 'Other Other', 'POSTEXCL_Difference'] = difference_postexclusion
+
+# Save the updated DataFrame
+df.to_excel("updated_file.xlsx", index=False)
+
+print("Calculation complete. The updated DataFrame has been saved.")
+
+
 import pandas as pd
 
 def LossesToRemainOnBookingEntity_Calculation(inTotalRPS_col, inAdjNetRev_col, inTCMAdjPost_col):
