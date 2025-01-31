@@ -1,0 +1,24 @@
+import pandas as pd
+
+def compare_dataframes(df1, df2):
+    """
+    Compare two dataframes element-wise and return a dataframe of the same shape
+    with 1 if values match, else 0.
+    """
+    if df1.shape != df2.shape:
+        raise ValueError("DataFrames must have the same shape")
+    
+    comparison_df = (df1 == df2).astype(int)
+    return comparison_df
+
+# Example usage
+data1 = {'A': [1, 2, 3], 'B': [4, 5, 6]}
+data2 = {'A': [1, 0, 3], 'B': [4, 8, 6]}
+
+df1 = pd.DataFrame(data1)
+df2 = pd.DataFrame(data2)
+
+result_df = compare_dataframes(df1, df2)
+print(result_df)
+
+df1.equals(df2)
