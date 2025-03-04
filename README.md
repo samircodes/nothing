@@ -66,3 +66,37 @@ Sub UpdatePivotFromCSV()
 
 End Sub
 
+
+import pandas as pd
+from openpyxl import load_workbook
+
+# File paths
+file_path = "your_file.xlsx"
+new_file_path = "new_file.xlsx"  # Temporary file
+sheet_name = "YTD report"
+
+# Your DataFrame (replace with actual data)
+df = pd.DataFrame({...})  
+
+# Step 1: Write the new "YTD report" sheet quickly using XlsxWriter
+df.to_excel(new_file_path, sheet_name=sheet_name, index=False, engine="xlsxwriter")
+
+# Step 2: Load both workbooks
+wb_old = load_workbook(file_path)
+wb_new = load_workbook(new_file_path)
+
+# Copy all sheets from the old file except "YTD report"
+for sheet in wb_old.sheetnames:
+    if sheet != sheet_name:  # Skip the "YTD report" sheet
+        ws_old = wb_old[sheet]
+        ws_new.create_sheet(sheet)
+        ws_new_ws = wb_new[sheet]
+        
+        for row in ws_old.iter_rows(values_only=True):
+            ws_new_ws.append(row)
+
+# Step 3: Save the final file (overwrite the original)
+wb_new.save(file_path)
+
+print(f"Sheet '{sheet_name}' updated successfully while keeping other sheets.")
+
