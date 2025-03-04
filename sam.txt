@@ -1,3 +1,45 @@
+mport pandas as pd
+import numpy as np
+from openpyxl import load_workbook
+
+# File path and sheet name
+file_path = "your_file.xlsx"
+sheet_name = "YTD report"
+
+# Your DataFrame (Replace with actual data)
+df = pd.DataFrame({...})
+
+# Convert DataFrame to NumPy array for faster processing
+data = df.to_numpy()
+
+# Load the workbook
+wb = load_workbook(file_path)
+
+# If the sheet exists, delete it (keeps other sheets intact)
+if sheet_name in wb.sheetnames:
+    del wb[sheet_name]
+
+# Create a new sheet with the same name
+ws = wb.create_sheet(title=sheet_name)
+
+# Write column headers
+ws.append(df.columns.tolist())
+
+# Write data using a generator (efficient memory usage)
+ws.append(row for row in map(tuple, data))  # Generator-based writing
+
+# Save the workbook
+wb.save(file_path)
+
+print(f"✅ Sheet '{sheet_name}' replaced successfully while keeping everything else intact!")
+
+
+
+
+
+
+
+
 import numpy as np
 import pandas as pd
 
