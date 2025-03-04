@@ -1,85 +1,70 @@
-=IF(R2<=0,
-    IF(O2+P2<=0,
-        IF(O2<0,
-            IF(P2<=0, 0, 0),
-            IF(O2=0,
-                IF(P2<=0, 0, 0),
-                IF(P2<=0, O2+P2, O2)
-            )
-        ),
-        IF(O2<0,
-            IF(P2>=0, 0, 0),
-            IF(O2=0,
-                IF(P2>=0, 0, 0),
-                IF(P2<=0, O2+P2, O2)
-            )
-        )
-    ),
-    IF(O2+P2<=0,
-        IF(O2<0,
-            IF(P2<=0, 0, 0),
-            IF(O2=0,
-                IF(P2<=0, 0, 0)
-            )
-        ),
-        IF(O2<0,
-            IF(P2>=0, O2+P2, O2+P2),
-            IF(O2=0,
-                IF(P2>=0, O2+P2, O2+P2),
-                IF(P2<=0, O2+P2, O2+P2)
-            )
-        )
-    )
-)
+Sub UpdatePivotSource()
+    Dim wsSource As Worksheet
+    Dim wsPivot1 As Worksheet
+    Dim wsPivot2 As Worksheet
+    Dim newFile As String
+    Dim newBook As Workbook
+    Dim lastRow As Long
+    Dim lastCol As Long
+    Dim dataRange As Range
+    Dim pt As PivotTable
 
+    ' Set worksheet references
+    Set wsPivot1 = ThisWorkbook.Sheets("RPS Calculations")
+    Set wsPivot2 = ThisWorkbook.Sheets("RPS Calculations Manual")
 
+    ' Prompt user to select a new source file
+    With Application.FileDialog(msoFileDialogFilePicker)
+        .Title = "Select New Source File"
+        .Filters.Clear
+        .Filters.Add "Excel Files", "*.xlsx;*.xlsm;*.xls"
+        .AllowMultiSelect = False
+        If .Show = -1 Then
+            newFile = .SelectedItems(1)
+        Else
+            Exit Sub ' If user cancels, exit macro
+        End If
+    End With
 
-Create Helper Columns for conditions and sub-cases:
+    ' Open the new workbook
+    Application.ScreenUpdating = False
+    Set newBook = Workbooks.Open(newFile)
 
-Column R: AdjNetRev + TCMAdjPost → Formula: =P2 + O2
-Column S: Case 1 (inTotalRPS <= 0) → Formula: =IF(Q2<=0,1,0)
-Column T: Sub-case 1.1 (Case1 AND AdjNetRev + TCMAdjPost <= 0) → Formula: =IF(AND(S2=1,R2<=0),1,0)
-Column U: Sub-case 1.2 (Case1 AND AdjNetRev + TCMAdjPost > 0) → Formula: =IF(AND(S2=1,R2>0),1,0)
-Column V: Case 2 (inTotalRPS > 0) → Formula: =IF(Q2>0,1,0)
-Column W: Sub-case 2.1 (Case2 AND AdjNetRev + TCMAdjPost <= 0) → Formula: =IF(AND(V2=1,R2<=0),1,0)
-Column X: Sub-case 2.2 (Case2 AND AdjNetRev + TCMAdjPost > 0) → Formula: =IF(AND(V2=1,R2>0),1,0)
-LossToRetain Calculation Based on Conditions:
+    ' Set the new source sheet
+    On Error Resume Next
+    Set wsSource = newBook.Sheets("RPSOutput_YTD_Report_FID_Detail")
+    If wsSource Is Nothing Then
+        MsgBox "Sheet 'RPSOutput_YTD_Report_FID_Detail' not found in the selected file.", vbExclamation, "Error"
+        newBook.Close False
+        Exit Sub
+    End If
+    On Error GoTo 0
 
-Column Y: Intermediate LossToRetain based on all conditions.
-Here are the 14 conditions mapped into formulas for LossToRetain:
+    ' Find the last row and column in the new source file
+    lastRow = wsSource.Cells(Rows.Count, 1).End(xlUp).Row
+    lastCol = wsSource.Cells(1, Columns.Count).End(xlToLeft).Column
 
-Case 1.1 (Sub-case 1.1):
-inAdjNetRev < 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(T2=1,P2<0,O2<=0),0,0)
-inAdjNetRev = 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(T2=1,P2=0,O2<=0),0,0)
-inAdjNetRev > 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(T2=1,P2>0,O2<=0),0,0)
-Case 1.2 (Sub-case 1.2):
-inAdjNetRev < 0 AND inTCMAdjPost >= 0:
-Formula: =IF(AND(U2=1,P2<0,O2>=0),0,0)
-inAdjNetRev = 0 AND inTCMAdjPost >= 0:
-Formula: =IF(AND(U2=1,P2=0,O2>=0),0,0)
-inAdjNetRev > 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(U2=1,P2>0,O2<=0),P2+O2,0)
-inAdjNetRev > 0 AND inTCMAdjPost > 0:
-Formula: =IF(AND(U2=1,P2>0,O2>0),P2,0)
-Case 2.1 (Sub-case 2.1):
-inAdjNetRev < 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(W2=1,P2<0,O2<=0),0,0)
-inAdjNetRev = 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(W2=1,P2=0,O2<=0),0,0)
-inAdjNetRev > 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(W2=1,P2>0,O2<=0),0,0)
-Case 2.2 (Sub-case 2.2):
-inAdjNetRev < 0 AND inTCMAdjPost >= 0:
-Formula: =IF(AND(X2=1,P2<0,O2>=0),P2+O2,0)
+    ' Define the data range
+    Set dataRange = wsSource.Range(wsSource.Cells(1, 1), wsSource.Cells(lastRow, lastCol))
 
-inAdjNetRev = 0 AND inTCMAdjPost >= 0:
-Formula: =IF(AND(X2=1,P2=0,O2>=0),P2+O2,0)
+    ' Set the new data source for PivotTables in both sheets
+    For Each pt In wsPivot1.PivotTables
+        pt.ChangePivotCache ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=dataRange)
+        pt.RefreshTable
+    Next pt
 
-inAdjNetRev > 0 AND inTCMAdjPost <= 0:
-Formula: =IF(AND(X2=1,P2>0,O2<=0),P2+O2,0)
+    For Each pt In wsPivot2.PivotTables
+        pt.ChangePivotCache ThisWorkbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=dataRange)
+        pt.RefreshTable
+    Next pt
 
-inAdjNetRev > 0 AND inTCMAdjPost > 0:
-Formula: =IF(AND(X2=1,P2>0,O2>0),P2,0)
+    ' Close the new source file
+    newBook.Close False
+
+    ' Turn screen updating back on
+    Application.ScreenUpdating = True
+
+    MsgBox "Pivot tables updated successfully!", vbInformation, "Success"
+
+End Sub
+
