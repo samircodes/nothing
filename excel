@@ -24,3 +24,36 @@ if sheet_name in wb.sheetnames:
     print(f"Sheet '{sheet_name}' has been updated successfully.")
 else:
     print(f"Sheet '{sheet_name}' not found in the 
+
+
+
+
+
+from openpyxl import load_workbook
+import pandas as pd
+import numpy as np
+
+# File path and sheet name
+file_path = "your_file.xlsx"  
+sheet_name = "YTD report"
+
+# Sample DataFrame (Replace with your actual data)
+df = pd.DataFrame(np.random.rand(10000, 10))  # Simulating a large DataFrame
+
+# Load the existing workbook and target sheet
+wb = load_workbook(file_path)
+ws = wb[sheet_name]
+
+# Clear existing data (keeping column headers)
+ws.delete_rows(2, ws.max_row)
+
+# Convert DataFrame to list of lists for fast writing
+data = df.values.tolist()
+
+# Batch write the new data (row-wise)
+for row in data:
+    ws.append(row)
+
+# Save the workbook (keeps other sheets intact)
+wb.save(file_path)
+print(f"Sheet '{sheet_name}' updated successfully while keeping other sheets intact.")
