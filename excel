@@ -1,0 +1,26 @@
+from openpyxl import load_workbook
+import pandas as pd
+
+# Define file path and sheet name
+file_path = "your_file.xlsx"  # Update with your actual file path
+sheet_name = "YTD report"      # Sheet to replace
+
+# Your DataFrame
+df = pd.DataFrame({...})  # Replace with your actual DataFrame
+
+# Load the existing workbook and select the sheet
+wb = load_workbook(file_path)
+if sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+    ws.delete_rows(1, ws.max_row)  # Clear existing content
+
+    # Write new DataFrame content
+    for r_idx, row in enumerate(df.itertuples(index=False), start=1):
+        for c_idx, value in enumerate(row, start=1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
+    
+    # Save the workbook
+    wb.save(file_path)
+    print(f"Sheet '{sheet_name}' has been updated successfully.")
+else:
+    print(f"Sheet '{sheet_name}' not found in the 
