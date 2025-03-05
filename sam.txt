@@ -1,3 +1,43 @@
+import pandas as pd
+from openpyxl import load_workbook
+
+# Load your new source data
+new_data = pd.DataFrame({
+    'Column1': [1, 2, 3],
+    'Column2': ['A', 'B', 'C'],
+    'Column3': [10.5, 20.3, 30.1]
+})
+
+# Load the existing Excel file
+file_path = "your_file.xlsx"
+wb = load_workbook(file_path)
+
+# Specify the sheet containing source data
+source_sheet = "SourceData"  # Change this to your actual source sheet name
+
+# Remove existing data from the source sheet (except headers)
+ws = wb[source_sheet]
+ws.delete_rows(2, ws.max_row)  # Deletes all rows except headers
+
+# Write new data into the sheet
+for r_idx, row in enumerate(new_data.itertuples(index=False), start=2):
+    for c_idx, value in enumerate(row, start=1):
+        ws.cell(row=r_idx, column=c_idx, value=value)
+
+# Save the updated file
+output_path = "updated_file.xlsx"
+wb.save(output_path)
+
+print(f"Updated file saved as {output_path}")
+
+
+
+
+
+
+
+
+
 mport pandas as pd
 import numpy as np
 from openpyxl import load_workbook
