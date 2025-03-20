@@ -1,3 +1,73 @@
+import pandas as pd
+import numpy as np
+
+# Assuming STRESSLOSSES is your DataFrame and GroupbyList_LE is a list of columns to group by
+# Convert relevant columns to NumPy arrays for faster computation
+amounts = STRESSLOSSES['AMOUNT'].to_numpy()
+risk_types = STRESSLOSSES['RISK_TYPE'].to_numpy()
+ukg_nonukg = STRESSLOSSES['UKG_NONUKG'].to_numpy()
+groupby_values = STRESSLOSSES[GroupbyList_LE].to_numpy()
+
+# Precompute filters using NumPy
+credit_filter = (risk_types == 'CR')
+market_filter = (risk_types == 'MR')
+operations_filter = (risk_types == 'OR')
+uk_filter = (risk_types == 'OR') & (ukg_nonukg == 'UK GROUP')
+nonuk_filter = (risk_types == 'OR') & (ukg_nonukg == 'NON UK GROUP')
+
+# Initialize a dictionary to store results
+results = {
+    'total_stress_losses': [],
+    'credit_stress_losses': [],
+    'market_stress_losses': [],
+    'operations_stress_losses': [],
+    'uk_stress_losses': [],
+    'nonuk_stress_losses': []
+}
+
+# Get unique groups
+unique_groups = np.unique(groupby_values, axis=0)
+
+# Iterate over each group and compute aggregations
+for group in unique_groups:
+    group_mask = (groupby_values == group).all(axis=1)
+    
+    # Compute total stress losses
+    total_stress_losses = amounts[group_mask].sum()
+    
+    # Compute credit stress losses
+    credit_stress_losses = amounts[group_mask & credit_filter].sum()
+    
+    # Compute market stress losses
+    market_stress_losses = amounts[group_mask & market_filter].sum()
+    
+    # Compute operations stress losses
+    operations_stress_losses = amounts[group_mask & operations_filter].sum()
+    
+    # Compute UK stress losses
+    uk_stress_losses = amounts[group_mask & uk_filter].sum()
+    
+    # Compute non-UK stress losses
+    nonuk_stress_losses = amounts[group_mask & nonuk_filter].sum()
+    
+    # Append results to the dictionary
+    results['total_stress_losses'].append(total_stress_losses)
+    results['credit_stress_losses'].append(credit_stress_losses)
+    results['market_stress_losses'].append(market_stress_losses)
+    results['operations_stress_losses'].append(operations_stress_losses)
+    results['uk_stress_losses'].append(uk_stress_losses)
+    results['nonuk_stress_losses'].append(nonuk_stress_losses)
+
+# Convert results to a DataFrame
+STRESSLOSSES_aggregate = pd.DataFrame(results)
+STRESSLOSSES_aggregate[GroupbyList_LE] = unique_groups
+```
+
+---
+
+
+
+
 import numpy as np
 import pandas as pd
 
