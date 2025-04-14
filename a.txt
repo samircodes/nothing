@@ -1,264 +1,35 @@
-
 import pandas as pd
+import xlwings as xw
 
-# Load your DataFrame (replace with actual loading method)
-df = pd.read_excel("your_file.xlsx")
+# Sample DataFrame (replace this with your actual data)
+data = {
+    'Business Unit': ['BU1', 'BU1', 'BU2', 'BU2'],
+    'Scenario': ['Actual', 'Forecast', 'Actual', 'Forecast'],
+    'Period': ['Q1', 'Q2', 'Q1', 'Q2'],
+    'Profit': [100, 150, 200, 250],
+    'Loss': [20, 30, 40, 50]
+}
+df = pd.DataFrame(data)
 
-# Step 1: Calculate pre-exclusion sum for 'Other Expenses'
-other_expenses = df[df['TYPE'] == 'Other Expenses']
-prexclusion_sum = (
-    other_expenses.groupby(['BUSINESS_UNIT', 'LEGAL_ENTITY', 'PERIOD', 'REGION', 'SCENARIO'])['PREXCL']
-    .sum()
-    .reset_index(name='PreExclusion_Sum')
+# Optionally filter the DataFrame if you want specific BU/Scenario
+filtered_df = df[
+    (df['Business Unit'] == 'BU1') & 
+    (df['Scenario'] == 'Actual')
+]
+
+# Create pivot-like structure
+pivot_df = filtered_df.pivot_table(
+    index=[],
+    columns='Period',
+    values=['Profit', 'Loss'],
+    aggfunc='sum'
 )
 
-# Step 2: Drop rows with 'Other Other' in LEVEL11 and calculate sums
-filtered_df = df[df['LEVEL11'] != 'Other Other']
-filtered_prexclusion_sum = filtered_df['PREXCL'].sum()
-filtered_postexclusion_sum = filtered_df['POSTEXCL'].sum()
+# Flatten column headers
+pivot_df.columns = [f"{val}_{col}" for val, col in pivot_df.columns]
+pivot_df.reset_index(drop=True, inplace=True)
 
-# Step 3: Populate the difference for 'Other Other' in LEVEL11
-difference_prexclusion = prexclusion_sum['PreExclusion_Sum'].sum() - filtered_prexclusion_sum
-difference_postexclusion = df['POSTEXCL'].sum() - filtered_postexclusion_sum
-
-# Add the differences to rows with 'Other Other' in LEVEL11
-df.loc[df['LEVEL11'] == 'Other Other', 'PREXCL_Difference'] = difference_prexclusion
-df.loc[df['LEVEL11'] == 'Other Other', 'POSTEXCL_Difference'] = difference_postexclusion
-
-# Save the updated DataFrame
-df.to_excel("updated_file.xlsx", index=False)
-
-print("Calculation complete. The updated DataFrame has been saved.")
-
-
-import pandas as pd
-
-def LossesToRemainOnBookingEntity_Calculation(inTotalRPS_col, inAdjNetRev_col, inTCMAdjPost_col):
-    # Convert columns to lists
-    inTotalRPS_list = inTotalRPS_col.tolist()
-    inAdjNetRev_list = inAdjNetRev_col.tolist()
-    inTCMAdjPost_list = inTCMAdjPost_col.tolist()
-    
-    LossToRetain_list = []  
-    
-    # Looping through the lists and calculate LossToRetain for each set of values
-    for inTotalRPS, inAdjNetRev, inTCMAdjPost in zip(inTotalRPS_list, inAdjNetRev_list, inTCMAdjPost_list):
-        if inTotalRPS <= 0:
-            if inAdjNetRev + inTCMAdjPost <= 0:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                    else:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-            else:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                    else:
-                        LossToRetain = inAdjNetRev
-        else:
-            if inAdjNetRev + inTCMAdjPost <= 0:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                    else:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-            else:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                    else:
-                        LossToRetain = inAdjNetRev
-        
-        # Append the calculated value to the list
-        LossToRetain_list.append(LossToRetain)
-    
-    # Return the list as a DataFrame column
-    return pd.Series(LossToRetain_list)
-
-# Example usage:
-data = {
-    'inTotalRPS': [0,1,-1,1],
-    'inAdjNetRev': [10,-5,0,10],
-    'inTCMAdjPost': [5,-5,0,-3]
-}
-TP = pd.DataFrame(data)
-LTR = pd.DataFrame(data)
-# Call the function and assign the result to a new DataFrame column
-LTR['LossToRetain'] = LossesToRemainOnBookingEntity_Calculation(TP['inTotalRPS'], TP['inAdjNetRev'], TP['inTCMAdjPost'])
-print(LTR[['LossToRetain']])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import pandas as pd
-
-def LossesToRemainOnBookingEntity_Calculation(df):
-    def calculate_loss(row):
-        inTotalRPS = row['inTotalRPS']
-        inAdjNetRev = row['inAdjNetRev']
-        inTCMAdjPost = row['inTCMAdjPost']
-        
-        if inTotalRPS <= 0:
-            if inAdjNetRev + inTCMAdjPost <= 0:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                    else:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-            else:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                    else:
-                        LossToRetain = inAdjNetRev
-        else:
-            if inAdjNetRev + inTCMAdjPost <= 0:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                    else:
-                        LossToRetain = 0
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = 0
-            else:
-                if inAdjNetRev < 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                elif inAdjNetRev == 0:
-                    if inTCMAdjPost >= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                else:
-                    if inTCMAdjPost <= 0:
-                        LossToRetain = inAdjNetRev + inTCMAdjPost
-                    else:
-                        LossToRetain = inAdjNetRev
-        return LossToRetain
-
-    # Apply the calculation to each row in the DataFrame
-    df['LossToRetain'] = df.apply(calculate_loss, axis=1)
-    return df[['LossToRetain']]
-
-
-# Example DataFrame
-data = {
-    'inTotalRPS': [0, 1, -1],
-    'inAdjNetRev': [10, -5, 0],
-    'inTCMAdjPost': [5, -5, 0]
-}
-df = pd.DataFrame(data)
-
-# Calculate LossToRetain
-result_df = LossesToRemainOnBookingEntity_Calculation(df)
-print(result_df)
-
-
-
-
-
-import pandas as pd
-import numpy as np
-
-def LossesToRemainOnBookingEntity_Calculation(df):
-    # Initialize LossToRetain column with a default value of 0
-    df['LossToRetain'] = 0
-
-    # Case 1: When inTotalRPS <= 0 and other nested conditions
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] <= 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] <= 0),
-        df['inAdjNetRev'] + df['inTCMAdjPost'], 
-        df['LossToRetain']
-    )
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] <= 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] > 0),
-        df['inAdjNetRev'], 
-        df['LossToRetain']
-    )
-
-    # Case 2: When inTotalRPS > 0 and other nested conditions
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] < 0) & (df['inTCMAdjPost'] >= 0),
-        df['inAdjNetRev'] + df['inTCMAdjPost'], 
-        df['LossToRetain']
-    )
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] == 0) & (df['inTCMAdjPost'] >= 0),
-        df['inAdjNetRev'] + df['inTCMAdjPost'], 
-        df['LossToRetain']
-    )
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] <= 0),
-        df['inAdjNetRev'] + df['inTCMAdjPost'], 
-        df['LossToRetain']
-    )
-    df['LossToRetain'] = np.where(
-        (df['inTotalRPS'] > 0) & (df['inAdjNetRev'] + df['inTCMAdjPost'] > 0) & (df['inAdjNetRev'] > 0) & (df['inTCMAdjPost'] > 0),
-        df['inAdjNetRev'], 
-        df['LossToRetain']
-    )
-
-    return df[['LossToRetain']]
-
-# Example DataFrame
-data = {
-    'inTotalRPS': [0, 1, -1, 1],
-    'inAdjNetRev': [10, -5, 0, 10],
-    'inTCMAdjPost': [5, -5, 0, -3]
-}
-df = pd.DataFrame(data)
-
-# Calculate LossToRetain
-result_df = LossesToRemainOnBookingEntity_Calculation(df)
-print(result_df)
+# Push to Excel using xlwings
+wb = xw.Book()  # creates a new workbook
+sheet = wb.sheets['Sheet1']
+sheet.range("A1").value = pivot_df
