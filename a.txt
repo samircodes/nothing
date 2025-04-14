@@ -1,6 +1,12 @@
 import pandas as pd
 import xlwings as xw
 
+# Excel PivotField orientation constants
+xlPageField = 3
+xlColumnField = 2
+xlRowField = 1
+xlDataField = 4
+
 # Sample data
 data = {
     'Business Unit': ['BU1', 'BU1', 'BU2', 'BU2'],
@@ -11,39 +17,48 @@ data = {
 }
 df = pd.DataFrame(data)
 
-# Define save path
+# Save path
 save_path = r'C:\Users\YourUsername\Documents\real_pivot.xlsx'
 
-# Create a new workbook
-wb = xw.Book()
+# Start Excel app
+app = xw.App(visible=True)
+wb = app.books.add()
+
+# Write data to sheet
 sheet_data = wb.sheets[0]
 sheet_data.name = "Data"
-sheet_data.range("A1").value = df
 
-# Define the range of the source data
-last_row = len(df) + 1  # +1 for header
-last_col = len(df.columns)
-source_range = sheet_data.range((1,1), (last_row, last_col))
+# Write headers + data starting from A1
+sheet_data.range("A1").value = df.columns.tolist()
+sheet_data.range("A2").value = df.values.tolist()
 
-# Create Pivot Table sheet
+# Define correct range (starting from A1)
+num_rows = df.shape[0] + 1  # +1 for header
+num_cols = df.shape[1]
+source_range = sheet_data.range((1, 1), (num_rows, num_cols))
+
+# Add Pivot sheet
 sheet_pivot = wb.sheets.add("Pivot")
 
-# Create Pivot Cache
-pivot_cache = wb.api.PivotTableWizard(
+# Create Pivot Table
+wb.api.PivotTableWizard(
     SourceType=1,
     SourceData=source_range.api,
     TableDestination=sheet_pivot.range("A3").api,
     TableName="MyPivotTable"
 )
 
-# Add fields to pivot
+# Access the pivot table
 pivot_table = sheet_pivot.api.PivotTables("MyPivotTable")
-pivot_table.PivotFields("Business Unit").Orientation = 3  # xlPageField (Filter)
-pivot_table.PivotFields("Scenario").Orientation = 3       # xlPageField (Filter)
-pivot_table.PivotFields("Period").Orientation = 2         # xlColumnField
-pivot_table.PivotFields("Profit").Orientation = 4         # xlDataField
-pivot_table.PivotFields("Loss").Orientation = 4           # xlDataField
 
-# Save and optionally close
+# Assign pivot fields
+pivot_table.PivotFields("Business Unit").Orientation = xlPageField
+pivot_table.PivotFields("Scenario").Orientation = xlPageField
+pivot_table.PivotFields("Period").Orientation = xlColumnField
+pivot_table.PivotFields("Profit").Orientation = xlDataField
+pivot_table.PivotFields("Loss").Orientation = xlDataField
+
+# Save
 wb.save(save_path)
 # wb.close()
+# app.quit()
