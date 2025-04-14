@@ -1,7 +1,7 @@
 import pandas as pd
 import xlwings as xw
 
-# Sample DataFrame (replace this with your actual data)
+# Sample data
 data = {
     'Business Unit': ['BU1', 'BU1', 'BU2', 'BU2'],
     'Scenario': ['Actual', 'Forecast', 'Actual', 'Forecast'],
@@ -11,25 +11,39 @@ data = {
 }
 df = pd.DataFrame(data)
 
-# Optionally filter the DataFrame if you want specific BU/Scenario
-filtered_df = df[
-    (df['Business Unit'] == 'BU1') & 
-    (df['Scenario'] == 'Actual')
-]
+# Define save path
+save_path = r'C:\Users\YourUsername\Documents\real_pivot.xlsx'
 
-# Create pivot-like structure
-pivot_df = filtered_df.pivot_table(
-    index=[],
-    columns='Period',
-    values=['Profit', 'Loss'],
-    aggfunc='sum'
+# Create a new workbook
+wb = xw.Book()
+sheet_data = wb.sheets[0]
+sheet_data.name = "Data"
+sheet_data.range("A1").value = df
+
+# Define the range of the source data
+last_row = len(df) + 1  # +1 for header
+last_col = len(df.columns)
+source_range = sheet_data.range((1,1), (last_row, last_col))
+
+# Create Pivot Table sheet
+sheet_pivot = wb.sheets.add("Pivot")
+
+# Create Pivot Cache
+pivot_cache = wb.api.PivotTableWizard(
+    SourceType=1,
+    SourceData=source_range.api,
+    TableDestination=sheet_pivot.range("A3").api,
+    TableName="MyPivotTable"
 )
 
-# Flatten column headers
-pivot_df.columns = [f"{val}_{col}" for val, col in pivot_df.columns]
-pivot_df.reset_index(drop=True, inplace=True)
+# Add fields to pivot
+pivot_table = sheet_pivot.api.PivotTables("MyPivotTable")
+pivot_table.PivotFields("Business Unit").Orientation = 3  # xlPageField (Filter)
+pivot_table.PivotFields("Scenario").Orientation = 3       # xlPageField (Filter)
+pivot_table.PivotFields("Period").Orientation = 2         # xlColumnField
+pivot_table.PivotFields("Profit").Orientation = 4         # xlDataField
+pivot_table.PivotFields("Loss").Orientation = 4           # xlDataField
 
-# Push to Excel using xlwings
-wb = xw.Book()  # creates a new workbook
-sheet = wb.sheets['Sheet1']
-sheet.range("A1").value = pivot_df
+# Save and optionally close
+wb.save(save_path)
+# wb.close()
