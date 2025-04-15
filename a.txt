@@ -1,38 +1,22 @@
-Function GetCSVData(filePath As String) As Variant
-    Dim fso As Object, ts As Object
-    Dim lines() As String, parts() As String
-    Dim i As Long, j As Long
-    Dim maxCols As Long
-    Dim dataArr() As Variant
+import pandas as pd
+from openpyxl import load_workbook
 
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set ts = fso.OpenTextFile(filePath, 1)
+# Load the existing Excel file with pivot table
+excel_file = '/Users/samirsm1mac/Downloads/sam.xlsx'  # Replace with your file path
+book = load_workbook(excel_file)
 
-    lines = Split(ts.ReadAll, vbCrLf)
-    ts.Close
+# Create your new DataFrame (example data, replace with your own)
+new_data = pd.DataFrame({
+    'Column1': [1, 2, 3],
+    'Column2': ['A', 'B', 'C']
+})
 
-    ' First pass to get the max number of columns
-    maxCols = 0
-    For i = 0 To UBound(lines)
-        If Trim(lines(i)) <> "" Then
-            parts = Split(lines(i), ",")
-            If UBound(parts) + 1 > maxCols Then
-                maxCols = UBound(parts) + 1
-            End If
-        End If
-    Next i
+# Create a pandas Excel writer using the loaded workbook
+writer = pd.ExcelWriter(excel_file, engine='openpyxl')
+writer.book = book
 
-    ReDim dataArr(1 To UBound(lines) + 1, 1 To maxCols)
+# Write the new DataFrame to a new sheet
+new_data.to_excel(writer, sheet_name='New_Sheet', index=False)
 
-    ' Second pass to fill array
-    For i = 0 To UBound(lines)
-        If Trim(lines(i)) <> "" Then
-            parts = Split(lines(i), ",")
-            For j = 0 To UBound(parts)
-                dataArr(i + 1, j + 1) = Trim(parts(j))
-            Next j
-        End If
-    Next i
-
-    GetCSVData = dataArr
-End Function
+# Save the Excel file
+writer.save()
