@@ -1,94 +1,9 @@
-Sub ImportAndProcessCSVData()
-    Dim ws As Worksheet
-    Dim fd As FileDialog
-    Dim filePath1 As String, filePath2 As String
-    Dim fileName1 As String, fileName2 As String
-    Dim sourceName1 As String, sourceName2 As String
-    Dim rng As Range
-    Dim lastRow As Long
-    Dim data1 As Variant, data2 As Variant
-    Dim combinedData As Variant
-    Dim i As Long, j As Long, rowNum As Long
-    Dim qtrRaw As String, qtrFormatted As String
-    Dim fso As Object, ts As Object
-
-    ' Prompt for first file
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    fd.AllowMultiSelect = False
-    fd.Title = "Select First CSV File"
-    If fd.Show <> -1 Then Exit Sub
-    filePath1 = fd.SelectedItems(1)
-    sourceName1 = InputBox("Enter source name for first file:")
-
-    ' Prompt for second file
-    fd.Title = "Select Second CSV File"
-    If fd.Show <> -1 Then Exit Sub
-    filePath2 = fd.SelectedItems(1)
-    sourceName2 = InputBox("Enter source name for second file:")
-
-    ' Load both CSVs into arrays
-    data1 = GetCSVData(filePath1)
-    data2 = GetCSVData(filePath2)
-
-    If IsEmpty(data1) Or IsEmpty(data2) Then
-        MsgBox "Error loading CSV files.", vbExclamation
-        Exit Sub
-    End If
-
-    ' Combine headers + data
-    ReDim combinedData(1 To UBound(data1) + UBound(data2) - 1, 1 To UBound(data1, 2) + 2)
-
-    ' Add headers
-    For j = 1 To UBound(data1, 2)
-        combinedData(1, j) = data1(1, j)
-    Next j
-    combinedData(1, j) = "Source"
-    combinedData(1, j + 1) = "Qtr"
-
-    rowNum = 2
-
-    ' Add first file data
-    For i = 2 To UBound(data1)
-        For j = 1 To UBound(data1, 2)
-            combinedData(rowNum, j) = data1(i, j)
-        Next j
-        combinedData(rowNum, j) = sourceName1
-        combinedData(rowNum, j + 1) = ConvertQtrFormat(data1(i, 3))
-        rowNum = rowNum + 1
-    Next i
-
-    ' Add second file data
-    For i = 2 To UBound(data2)
-        For j = 1 To UBound(data2, 2)
-            combinedData(rowNum, j) = data2(i, j)
-        Next j
-        combinedData(rowNum, j) = sourceName2
-        combinedData(rowNum, j + 1) = ConvertQtrFormat(data2(i, 3))
-        rowNum = rowNum + 1
-    Next i
-
-    ' Create or clear sourcedata sheet
-    On Error Resume Next
-    Set ws = Sheets("sourcedata")
-    If ws Is Nothing Then
-        Set ws = Sheets.Add
-        ws.Name = "sourcedata"
-    Else
-        ws.Cells.Clear
-    End If
-    On Error GoTo 0
-
-    ' Write data
-    ws.Range("A1").Resize(UBound(combinedData), UBound(combinedData, 2)).Value = combinedData
-
-    MsgBox "Data successfully loaded and processed into 'sourcedata' sheet!", vbInformation
-End Sub
-
 Function GetCSVData(filePath As String) As Variant
     Dim fso As Object, ts As Object
-    Dim lines As Variant, line As Variant, parts As Variant
+    Dim lines() As String, parts() As String
     Dim i As Long, j As Long
-    Dim data() As Variant
+    Dim maxCols As Long
+    Dim dataArr() As Variant
 
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set ts = fso.OpenTextFile(filePath, 1)
@@ -96,33 +11,28 @@ Function GetCSVData(filePath As String) As Variant
     lines = Split(ts.ReadAll, vbCrLf)
     ts.Close
 
-    ReDim data(1 To UBound(lines) + 1, 1 To 50) ' Up to 50 columns (adjust if needed)
+    ' First pass to get the max number of columns
+    maxCols = 0
+    For i = 0 To UBound(lines)
+        If Trim(lines(i)) <> "" Then
+            parts = Split(lines(i), ",")
+            If UBound(parts) + 1 > maxCols Then
+                maxCols = UBound(parts) + 1
+            End If
+        End If
+    Next i
 
+    ReDim dataArr(1 To UBound(lines) + 1, 1 To maxCols)
+
+    ' Second pass to fill array
     For i = 0 To UBound(lines)
         If Trim(lines(i)) <> "" Then
             parts = Split(lines(i), ",")
             For j = 0 To UBound(parts)
-                data(i + 1, j + 1) = Trim(parts(j))
+                dataArr(i + 1, j + 1) = Trim(parts(j))
             Next j
         End If
     Next i
 
-    GetCSVData = data
-End Function
-
-Function ConvertQtrFormat(qtrRaw As String) As String
-    Dim quarterNum As String
-    Dim yearShort As String
-    Dim yearFull As String
-
-    If Len(qtrRaw) < 4 Then
-        ConvertQtrFormat = qtrRaw
-        Exit Function
-    End If
-
-    quarterNum = Left(qtrRaw, 1)
-    yearShort = Right(qtrRaw, 2)
-    yearFull = "20" & yearShort
-
-    ConvertQtrFormat = yearFull & " Q" & quarterNum
+    GetCSVData = dataArr
 End Function
