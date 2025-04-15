@@ -20,3 +20,35 @@ new_data.to_excel(writer, sheet_name='New_Sheet', index=False)
 
 # Save the Excel file
 writer.save()
+
+
+
+
+
+
+import pandas as pd
+from openpyxl import load_workbook
+
+# Load the existing Excel file with pivot table
+input_file = 'your_file.xlsx'  # Replace with your input file path
+book = load_workbook(input_file)
+
+# Create your new DataFrame (example data, replace with your own)
+new_data = pd.DataFrame({
+    'Column1': [1, 2, 3],
+    'Column2': ['A', 'B', 'C']
+})
+
+# Specify the new output file path
+output_file = 'new_file.xlsx'  # Replace with your desired output file path
+
+# Create a pandas Excel writer for the new file
+writer = pd.ExcelWriter(output_file, engine='openpyxl')
+writer.book = book
+
+# Write the new DataFrame to a new sheet
+new_data.to_excel(writer, sheet_name='New_Sheet', index=False)
+
+# Save the new Excel file
+writer.save()
+print(f"New Excel file saved as '{output_file}' with the original pivot table and new sheet.")
