@@ -1,64 +1,128 @@
-import pandas as pd
-import xlwings as xw
+Sub ImportAndProcessCSVData()
+    Dim ws As Worksheet
+    Dim fd As FileDialog
+    Dim filePath1 As String, filePath2 As String
+    Dim fileName1 As String, fileName2 As String
+    Dim sourceName1 As String, sourceName2 As String
+    Dim rng As Range
+    Dim lastRow As Long
+    Dim data1 As Variant, data2 As Variant
+    Dim combinedData As Variant
+    Dim i As Long, j As Long, rowNum As Long
+    Dim qtrRaw As String, qtrFormatted As String
+    Dim fso As Object, ts As Object
 
-# Excel PivotField orientation constants
-xlPageField = 3
-xlColumnField = 2
-xlRowField = 1
-xlDataField = 4
+    ' Prompt for first file
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.AllowMultiSelect = False
+    fd.Title = "Select First CSV File"
+    If fd.Show <> -1 Then Exit Sub
+    filePath1 = fd.SelectedItems(1)
+    sourceName1 = InputBox("Enter source name for first file:")
 
-# Sample data
-data = {
-    'Business Unit': ['BU1', 'BU1', 'BU2', 'BU2'],
-    'Scenario': ['Actual', 'Forecast', 'Actual', 'Forecast'],
-    'Period': ['Q1', 'Q2', 'Q1', 'Q2'],
-    'Profit': [100, 150, 200, 250],
-    'Loss': [20, 30, 40, 50]
-}
-df = pd.DataFrame(data)
+    ' Prompt for second file
+    fd.Title = "Select Second CSV File"
+    If fd.Show <> -1 Then Exit Sub
+    filePath2 = fd.SelectedItems(1)
+    sourceName2 = InputBox("Enter source name for second file:")
 
-# Save path
-save_path = r'C:\Users\YourUsername\Documents\real_pivot.xlsx'
+    ' Load both CSVs into arrays
+    data1 = GetCSVData(filePath1)
+    data2 = GetCSVData(filePath2)
 
-# Start Excel app
-app = xw.App(visible=True)
-wb = app.books.add()
+    If IsEmpty(data1) Or IsEmpty(data2) Then
+        MsgBox "Error loading CSV files.", vbExclamation
+        Exit Sub
+    End If
 
-# Write data to sheet
-sheet_data = wb.sheets[0]
-sheet_data.name = "Data"
+    ' Combine headers + data
+    ReDim combinedData(1 To UBound(data1) + UBound(data2) - 1, 1 To UBound(data1, 2) + 2)
 
-# Write headers + data starting from A1
-sheet_data.range("A1").value = df.columns.tolist()
-sheet_data.range("A2").value = df.values.tolist()
+    ' Add headers
+    For j = 1 To UBound(data1, 2)
+        combinedData(1, j) = data1(1, j)
+    Next j
+    combinedData(1, j) = "Source"
+    combinedData(1, j + 1) = "Qtr"
 
-# Define correct range (starting from A1)
-num_rows = df.shape[0] + 1  # +1 for header
-num_cols = df.shape[1]
-source_range = sheet_data.range((1, 1), (num_rows, num_cols))
+    rowNum = 2
 
-# Add Pivot sheet
-sheet_pivot = wb.sheets.add("Pivot")
+    ' Add first file data
+    For i = 2 To UBound(data1)
+        For j = 1 To UBound(data1, 2)
+            combinedData(rowNum, j) = data1(i, j)
+        Next j
+        combinedData(rowNum, j) = sourceName1
+        combinedData(rowNum, j + 1) = ConvertQtrFormat(data1(i, 3))
+        rowNum = rowNum + 1
+    Next i
 
-# Create Pivot Table
-wb.api.PivotTableWizard(
-    SourceType=1,
-    SourceData=source_range.api,
-    TableDestination=sheet_pivot.range("A3").api,
-    TableName="MyPivotTable"
-)
+    ' Add second file data
+    For i = 2 To UBound(data2)
+        For j = 1 To UBound(data2, 2)
+            combinedData(rowNum, j) = data2(i, j)
+        Next j
+        combinedData(rowNum, j) = sourceName2
+        combinedData(rowNum, j + 1) = ConvertQtrFormat(data2(i, 3))
+        rowNum = rowNum + 1
+    Next i
 
-# Access the pivot table
-pivot_table = sheet_pivot.api.PivotTables("MyPivotTable")
+    ' Create or clear sourcedata sheet
+    On Error Resume Next
+    Set ws = Sheets("sourcedata")
+    If ws Is Nothing Then
+        Set ws = Sheets.Add
+        ws.Name = "sourcedata"
+    Else
+        ws.Cells.Clear
+    End If
+    On Error GoTo 0
 
-# Assign pivot fields
-pivot_table.PivotFields("Business Unit").Orientation = xlPageField
-pivot_table.PivotFields("Scenario").Orientation = xlPageField
-pivot_table.PivotFields("Period").Orientation = xlColumnField
-pivot_table.PivotFields("Profit").Orientation = xlDataField
-pivot_table.PivotFields("Loss").Orientation = xlDataField
+    ' Write data
+    ws.Range("A1").Resize(UBound(combinedData), UBound(combinedData, 2)).Value = combinedData
 
-# Save
-wb.save(save_path)
-# wb.close()
-# app.quit()
+    MsgBox "Data successfully loaded and processed into 'sourcedata' sheet!", vbInformation
+End Sub
+
+Function GetCSVData(filePath As String) As Variant
+    Dim fso As Object, ts As Object
+    Dim lines As Variant, line As Variant, parts As Variant
+    Dim i As Long, j As Long
+    Dim data() As Variant
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.OpenTextFile(filePath, 1)
+
+    lines = Split(ts.ReadAll, vbCrLf)
+    ts.Close
+
+    ReDim data(1 To UBound(lines) + 1, 1 To 50) ' Up to 50 columns (adjust if needed)
+
+    For i = 0 To UBound(lines)
+        If Trim(lines(i)) <> "" Then
+            parts = Split(lines(i), ",")
+            For j = 0 To UBound(parts)
+                data(i + 1, j + 1) = Trim(parts(j))
+            Next j
+        End If
+    Next i
+
+    GetCSVData = data
+End Function
+
+Function ConvertQtrFormat(qtrRaw As String) As String
+    Dim quarterNum As String
+    Dim yearShort As String
+    Dim yearFull As String
+
+    If Len(qtrRaw) < 4 Then
+        ConvertQtrFormat = qtrRaw
+        Exit Function
+    End If
+
+    quarterNum = Left(qtrRaw, 1)
+    yearShort = Right(qtrRaw, 2)
+    yearFull = "20" & yearShort
+
+    ConvertQtrFormat = yearFull & " Q" & quarterNum
+End Function
