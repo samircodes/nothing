@@ -1,54 +1,48 @@
+import numpy as np
 import pandas as pd
-from openpyxl import load_workbook
 
-# Load the existing Excel file with pivot table
-excel_file = '/Users/samirsm1mac/Downloads/sam.xlsx'  # Replace with your file path
-book = load_workbook(excel_file)
+# Step 1: Copy and preprocess DataFrame
+TP_QTD = TP.copy()
+TP_QTD['Quarter'] = TP_QTD['PERIOD'].str.extract(r'(\d{1})')[0].astype(int)
+TP_QTD['Year'] = TP_QTD['PERIOD'].str.extract(r'(\d{4})')[0].astype(int)
 
-# Create your new DataFrame (example data, replace with your own)
-new_data = pd.DataFrame({
-    'Column1': [1, 2, 3],
-    'Column2': ['A', 'B', 'C']
-})
+# Step 2: Sort by grouping columns
+group_cols = ['BUSINESS_UNIT', 'REGION', 'SCENARIO', 'LEGAL_ENTITY', 'Year', 'Quarter']
+TP_QTD.sort_values(by=group_cols, inplace=True)
+TP_QTD.reset_index(drop=True, inplace=True)
 
-# Create a pandas Excel writer using the loaded workbook
-writer = pd.ExcelWriter(excel_file, engine='openpyxl')
-writer.book = book
+# Step 3: Define columns for NumPy processing
+exclude_columns = {
+    'ENTITY_ROLE', 'LE_LIST_FLAG', 'isPBIinProfit_NoSL', 'TCMreallocationFlag',
+    'VALUE_DATE', 'PERIOD', 'BUSINESS_UNIT', 'REGION', 'SCENARIO', 'LEGAL_ENTITY',
+    'Year', 'Quarter', 'BusinessCapitalRequired', 'AllocationPct', 'CapitalAllocationPct',
+    'CompensationAllocationPct', 'INTEREST_EXPENSE_PERCENTAGE',
+    'INTEREST_INCOME_PERCENTAGE', 'TRADING_REVENUE_PERCENTAGE',
+    'NET_INCOME_PERCENTAGE', 'OTHER_REVENUE_PERCENTAGE',
+    'LIQUIDITY_COST_PERCENTAGE', 'TotalPricingMeasure', 'TraderCompensation',
+    'pricingMeasure'
+}
 
-# Write the new DataFrame to a new sheet
-new_data.to_excel(writer, sheet_name='New_Sheet', index=False)
+numeric_cols = [col for col in TP_QTD.select_dtypes(include=[np.number]).columns if col not in exclude_columns]
 
-# Save the Excel file
-writer.save()
+# Step 4: Encode group columns into single group keys (using astype(str).agg)
+group_keys = TP_QTD[['BUSINESS_UNIT', 'REGION', 'SCENARIO', 'LEGAL_ENTITY', 'Year']].astype(str).agg('-'.join, axis=1)
+group_codes, group_indices = np.unique(group_keys, return_inverse=True)
 
+# Step 5: Convert numeric data to NumPy array
+data = TP_QTD[numeric_cols].to_numpy()
 
+# Step 6: Create an empty array for the diff result
+diff_result = np.full_like(data, np.nan)
 
+# Step 7: Loop over unique groups and apply np.diff
+for i in range(len(np.unique(group_indices))):
+    idx = np.where(group_indices == i)[0]
+    if len(idx) > 1:
+        diff_result[idx[1:], :] = data[idx[1:], :] - data[idx[:-1], :]
 
+# Step 8: Replace original columns with diff result
+TP_QTD[numeric_cols] = diff_result
 
-
-import pandas as pd
-from openpyxl import load_workbook
-
-# Load the existing Excel file with pivot table
-input_file = 'your_file.xlsx'  # Replace with your input file path
-book = load_workbook(input_file)
-
-# Create your new DataFrame (example data, replace with your own)
-new_data = pd.DataFrame({
-    'Column1': [1, 2, 3],
-    'Column2': ['A', 'B', 'C']
-})
-
-# Specify the new output file path
-output_file = 'new_file.xlsx'  # Replace with your desired output file path
-
-# Create a pandas Excel writer for the new file
-writer = pd.ExcelWriter(output_file, engine='openpyxl')
-writer.book = book
-
-# Write the new DataFrame to a new sheet
-new_data.to_excel(writer, sheet_name='New_Sheet', index=False)
-
-# Save the new Excel file
-writer.save()
-print(f"New Excel file saved as '{output_file}' with the original pivot table and new sheet.")
+# Step 9: Drop temporary columns
+TP_QTD.drop(columns=['Quarter', 'Year'], inplace=True)
